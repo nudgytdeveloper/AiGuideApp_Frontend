@@ -1,6 +1,6 @@
-# Session Viewer
+# Ai Guide App
 
-This is a simple React app created with Vite. It reads the `session` query parameter from the URL and displays it on the page.
+This app provide Ai Assistance features for visitor in Science Center Singapore
 
 ## Getting Started
 
