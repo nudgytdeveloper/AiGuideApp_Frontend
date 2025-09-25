@@ -1,0 +1,69 @@
+
+/* Responsive fixes added automatically:
+   - Make containers fluid on small screens
+   - Improve tap targets, font sizes
+   - Ensure images and iframes are responsive
+*/
+html, body, #root {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+.container, .app, .main, .content, .page, .wrapper {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+button, a {
+  -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+}
+input, button, select, textarea {
+  font-size: 16px !important;
+}
+.header, .navbar, .topbar {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+/* Make sidebars collapse */
+.sidebar, .left-sidebar, .right-sidebar {
+  display: none !important;
+}
+/* Adjust rows/columns to stack */
+.row, .flex-row, .d-flex {
+  flex-wrap: wrap !important;
+}
+.col, .column, [class*="col-"] {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+/* Buttons full width on small screens */
+@media (max-width: 420px) {
+  .btn, button {
+    width: 100% !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+  }
+  .nav-links, .menu {
+    display: flex !important;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  .search-input {
+    width: 100% !important;
+  }
+  .card {
+    padding: 12px !important;
+  }
+}
