@@ -1,6 +1,6 @@
 # Ai Guide App
 
-This app provide Ai Assistance features for visitor in Science Center Singapore
+This app provide Ai Assistance features for visitor in Science Center Singapore.
 
 ## Getting Started
 
