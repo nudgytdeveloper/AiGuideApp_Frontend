@@ -14,6 +14,10 @@ function getSessionFromUrl() {
 // Main App component - this is what gets exported
 export default function App() {
   const [sessionId, setSessionId] = useState(getSessionFromUrl())
+  useEffect(() => {
+    console.log("start up..")
+    getSessionFromUrl()
+  }, [])
 
   // get session from url
   useEffect(() => {

@@ -45,13 +45,13 @@
   position: relative;
   /* Option 1: Purple gradient background */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  
+
   /* Option 2: Light blue gradient background (uncomment to use) */
   /* background: linear-gradient(135deg, #a8edea 0%, #74d7f7 100%); */
-  
+
   /* Option 3: Purple to light blue gradient (uncomment to use) */
   /* background: linear-gradient(135deg, #667eea 0%, #a8edea 100%); */
-  
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -97,7 +97,7 @@
   padding: 0;
   width: 80px;
   height: 80px;
-  background 0.2s;
+  background: 0.2s;
 }
 
 .action-btn:hover {
@@ -179,7 +179,7 @@
   animation: pulse 1.5s infinite;
 }
 
-//For the "talking function" of the microphone
+/*For the "talking function" of the microphone */
 @keyframes pulse {
   0% {
     transform: scale(1);
