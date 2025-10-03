@@ -1,0 +1,49 @@
+import { createSlice } from "@reduxjs/toolkit"
+import { fromJS } from "immutable"
+
+const initialState = fromJS({
+  sessionId: null,
+  chatData: [],
+  isProcessing: false,
+  isListening: false,
+})
+
+const sessionSlice = createSlice({
+  name: "session",
+  initialState,
+  reducers: {
+    setIsProcessing: (state, action) => {
+      return state.merge(
+        fromJS({
+          isProcessing: action.payload,
+        })
+      )
+    },
+    setIsListening: (state, action) => {
+      return state.merge(
+        fromJS({
+          isListening: action.payload,
+        })
+      )
+    },
+    verifySession: (state) => {
+      return state
+    },
+    verifySessionSuccess: (state, actions) => {
+      return state.merge(
+        fromJS({
+          ...actions.payload,
+        })
+      )
+    },
+  },
+})
+
+export const {
+  setIsProcessing,
+  setIsListening,
+  verifySession,
+  verifySessionSuccess,
+} = sessionSlice.actions
+
+export default sessionSlice.reducer
