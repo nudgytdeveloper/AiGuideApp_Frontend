@@ -1,11 +1,14 @@
 import Api from "@nrs/apis"
-import { validateSession, verifySessionSuccess } from "@nrs/slices/sessionSlice"
+import { takeLatest, call, cancelled, put } from "redux-saga/effects"
+import { verifySession, verifySessionSuccess } from "@nrs/slices/sessionSlice"
 
-function* verifySessionFunc(sessionId) {
+function* verifySessionFunc(action) {
   try {
+    let { sessionId } = action.payload
+    console.log("verify..., ", sessionId)
     // ShowLoading()
     const request = {
-      sessionId: sessionId,
+      session: sessionId,
     }
 
     const result = yield call(Api.verifySession, request)
@@ -30,5 +33,5 @@ function* verifySessionFunc(sessionId) {
   }
 }
 export default function* rootSaga() {
-  yield takeLatest(validateSession.type, verifySessionFunc)
+  yield takeLatest(verifySession.type, verifySessionFunc)
 }

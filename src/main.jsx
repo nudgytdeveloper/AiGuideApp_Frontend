@@ -4,7 +4,7 @@ import App from "./App.jsx"
 import "./styles/responsive.css"
 import "./App.css" // separate CSS file for styling
 import { Provider } from "react-redux"
-import { store } from "./store.js"
+import store from "@nrs/store.js"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>

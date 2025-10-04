@@ -1,11 +1,10 @@
-import { post } from "./utils/fetch.js"
-const prefix = `${API_PREFIX}`
+import { post, get } from "./utils/fetch.js"
+const prefix = import.meta.env.VITE_API_PREFIX
 
 const Api = {
   verifySession: (payload) => {
-    return post(`${prefix}/access`, payload)
+    return get(`${prefix}/access`, payload)
   },
-  //#endregion
 }
 
 export default Api

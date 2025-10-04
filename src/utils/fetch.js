@@ -54,14 +54,17 @@ async function request(url, options, data, isFormPost = false) {
  * get request
  * @param {String} url request url
  */
-function get(url) {
+function get(url, params) {
+  const qs =
+    params && Object.keys(params).length
+      ? `?${new URLSearchParams(params).toString()}`
+      : ""
+
   return request(
-    url,
+    url + qs,
     Object.assign(defaultOptions, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     })
   )
 }
