@@ -7,6 +7,7 @@ import BottomPanel from "@nrs/components/BottomPanel"
 import LoadingOverlay from "@nrs/components/Common/LoadingOverlay"
 import { useDispatch } from "react-redux"
 import { verifySession } from "@nrs/slices/sessionSlice"
+import PopupDialog from "@nrs/components/Common/Popup/PopupDialog"
 
 // Main App component - this is what gets exported
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
         <MiddlePanel />
         <BottomPanel />
       </div>
+      <PopupDialog />
     </>
   ) : (
     <InvalidSession sessionId={sessionId} />

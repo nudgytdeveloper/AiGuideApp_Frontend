@@ -277,21 +277,23 @@
 /* Message text */
 .popup-message {
   font-size: 16px;
+  font-weight: bold;
   color: #333;
   margin-bottom: 20px;
 }
 
 /* OK button */
 .popup-button {
-  background-color: #4a90e2;
+  background-color: #7b2cbf;
   color: white;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
 }
 
 .popup-button:hover {
-  background-color: #357ab7;
+  background-color: #b174e7;
 }

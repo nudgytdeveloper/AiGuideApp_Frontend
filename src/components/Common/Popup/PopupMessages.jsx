@@ -1,6 +1,20 @@
-import React from "react"
+import { Error, Success } from "@nrs/constants/PopupType"
+import { closePopup } from "@nrs/slices/commonSlice"
+import React, { useCallback } from "react"
+import { useDispatch } from "react-redux"
+import { useSelector } from "react-redux"
 
-const Popup = ({ message, onClose }) => {
+const PopupMessages = () => {
+  const [message, errorCode] = useSelector((state) => {
+      return [state.common.get("message"), state.common.get("errorCode")]
+    }),
+    dispatch = useDispatch()
+
+  const onClose = useCallback(() => {
+    dispatch(closePopup({ popupType: errorCode ? Error : Success }))
+    // TODO: log out session and redirect back to home page
+  }, [])
+
   return (
     <div className="popup-overlay">
       <div className="popup-box">
@@ -13,4 +27,4 @@ const Popup = ({ message, onClose }) => {
   )
 }
 
-export default Popup
+export default PopupMessages

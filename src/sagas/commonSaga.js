@@ -10,12 +10,17 @@ import { Error, Success } from "@nrs/constants/PopupType"
 function* openPopupDialog({ payload }) {
   try {
     const state = yield select((state) => state.common)
+    const { message, errorCode } = payload
     let popUp = state.get("popUp"),
       newPayload = {}
     if (popUp.findIndex((pu) => pu === payload.popupType) === -1) {
       popUp = popUp.push(payload.popupType)
+      console.debug("@@@ add pop up: ", payload)
+      console.debug("!!! msg: ", message)
       //Add more popup condition if necessary for upcoming modules
       newPayload.popUp = popUp
+      newPayload.message = message
+      if (errorCode) newPayload.errorCode = errorCode
       yield put(
         openPopUpSuccess({
           ...newPayload,
