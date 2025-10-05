@@ -11,8 +11,6 @@ const PopupDialog = () => {
     return [commonState.get("popUp"), commonState.get("selectedPageType")]
   }, ArrayEqual)
 
-  console.debug("pop up list: ", popUpList)
-
   // Add more popup type here, for setting page / notification which supposed to be pop up as well instead of a page
   return (
     <>

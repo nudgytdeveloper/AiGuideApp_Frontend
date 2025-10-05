@@ -4,6 +4,8 @@ import scanIcon from "@nrs/assets/img/live_scan.png"
 //libraries for the avatar and LLM components
 import * as THREE from "three"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
+import { useSelector } from "react-redux"
+import { ArrayEqual } from "@nrs/utils/common"
 
 // Avatarchat: includes LLM, avatar and basic body animation components
 const AvatarChat = () => {
@@ -17,16 +19,17 @@ const AvatarChat = () => {
   const animationFrameRef = useRef(null)
   const recognitionRef = useRef(null)
 
-  const [isListening, setIsListening] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [conversationHistory, setConversationHistory] = useState([
-    {
-      role: "system",
-      content:
-        "You are the AI Assistant for a Singaporean company called Nudgyt. You are nice and friendly.",
+  const [isListening, isProcessing, conversationHistory] = useSelector(
+    (state) => {
+      const chatState = state.chat
+      return [
+        chatState.get("isListening"),
+        chatState.get("isProcessing"),
+        chatState.get("conversationHistory"),
+      ]
     },
-  ])
-  const [lastInteractionTime, setLastInteractionTime] = useState(Date.now())
+    ArrayEqual
+  )
 
   // Filter animation to only include position and rotation tracks
   const filterAnimation = (animation) => {

@@ -18,6 +18,7 @@ function* verifySessionFunc(action) {
     if (result) {
       console.log("verify result: ", result)
       yield put(verifySessionSuccess({ result }))
+      yield put(setIsLoading({ isLoading: false }))
     } else {
       console.log("Error while verifying..")
       yield put(

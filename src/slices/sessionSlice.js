@@ -12,20 +12,6 @@ const sessionSlice = createSlice({
   name: "session",
   initialState,
   reducers: {
-    setIsProcessing: (state, action) => {
-      return state.merge(
-        fromJS({
-          isProcessing: action.payload,
-        })
-      )
-    },
-    setIsListening: (state, action) => {
-      return state.merge(
-        fromJS({
-          isListening: action.payload,
-        })
-      )
-    },
     verifySession: (state) => {
       return state
     },
@@ -33,18 +19,12 @@ const sessionSlice = createSlice({
       return state.merge(
         fromJS({
           ...actions.payload,
-          isLoading: false,
         })
       )
     },
   },
 })
 
-export const {
-  setIsProcessing,
-  setIsListening,
-  verifySession,
-  verifySessionSuccess,
-} = sessionSlice.actions
+export const { verifySession, verifySessionSuccess } = sessionSlice.actions
 
 export default sessionSlice.reducer
