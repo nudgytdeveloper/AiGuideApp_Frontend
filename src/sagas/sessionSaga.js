@@ -3,7 +3,7 @@ import { takeLatest, call, cancelled, put } from "redux-saga/effects"
 import { verifySession, verifySessionSuccess } from "@nrs/slices/sessionSlice"
 import { BadRequest, NotFound } from "@nrs/constants/StatusCode"
 import * as PopupType from "@nrs/constants/PopupType"
-import { openPopUp } from "@nrs/slices/commonSlice"
+import { openPopUp, setIsLoading } from "@nrs/slices/commonSlice"
 
 function* verifySessionFunc(action) {
   try {
@@ -27,6 +27,7 @@ function* verifySessionFunc(action) {
           message: "Error while fetching session verification api...",
         })
       )
+      yield put(setIsLoading({ isLoading: false }))
     }
   } catch (err) {
     console.log("Error here")
@@ -38,6 +39,7 @@ function* verifySessionFunc(action) {
           "Session is expired or not exist. Kindly get started on Hologram again.",
       })
     )
+    yield put(setIsLoading({ isLoading: false }))
     // console.log(err)
     yield cancelled()
   } finally {

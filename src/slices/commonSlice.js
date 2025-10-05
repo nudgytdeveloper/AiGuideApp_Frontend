@@ -7,6 +7,7 @@ const initialState = fromJS({
   message: null,
   selectedPageType: AIChat,
   popUp: [],
+  isLoading: true,
 })
 
 const commonSlice = createSlice({
@@ -29,6 +30,13 @@ const commonSlice = createSlice({
       const payload = actions.payload
       return state.merge(fromJS(payload))
     },
+    setIsLoading: (state, action) => {
+      return state.merge(
+        fromJS({
+          ...action.payload,
+        })
+      )
+    },
   },
 })
 
@@ -38,6 +46,7 @@ export const {
   openPopUpSuccess,
   closePopupSuccess,
   updateAppMode,
+  setIsLoading,
 } = commonSlice.actions
 
 export default commonSlice.reducer

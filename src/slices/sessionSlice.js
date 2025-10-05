@@ -33,6 +33,7 @@ const sessionSlice = createSlice({
       return state.merge(
         fromJS({
           ...actions.payload,
+          isLoading: false,
         })
       )
     },

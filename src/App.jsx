@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import "./App.css"
 import InvalidSession from "./components/invalidSession"
 import TopPanel from "@nrs/components/TopPanel/index.jsx"
@@ -8,56 +8,59 @@ import LoadingOverlay from "@nrs/components/Common/LoadingOverlay"
 import { useDispatch } from "react-redux"
 import { verifySession } from "@nrs/slices/sessionSlice"
 import PopupDialog from "@nrs/components/Common/Popup/PopupDialog"
+import { useSelector } from "react-redux"
+import { ArrayEqual } from "@nrs/utils/common"
 
-// Main App component - this is what gets exported
+// Main App component
 export default function App() {
-  const dispatch = useDispatch()
-
-  function getSessionFromUrl() {
-    const params = new URLSearchParams(window.location.search),
-      session = params.get("session")
-    // verify the session
-    if (session) {
-      console.log("session: ", params.get("session"))
-      dispatch(verifySession({ sessionId: session }))
-    }
-    return params.get("session") || ""
-  }
-
-  const [sessionId, setSessionId] = useState(getSessionFromUrl()),
-    [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    console.log("start up..")
-    getSessionFromUrl()
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
-  }, [])
+  const dispatch = useDispatch(),
+    [sessionId, setSessionId] = useState(null),
+    [isLoading] = useSelector((state) => {
+      return [state.common.get("isLoading")]
+    }, ArrayEqual)
 
   // get session from url
   useEffect(() => {
     const onPopState = () => {
-      console.log("pop state...")
       setSessionId(getSessionFromUrl())
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
   }, [])
-  // TODO: to add checking session id's validility
-  let mainNode = sessionId ? (
-    <>
-      <LoadingOverlay isLoading={isLoading} />
-      <div className="app-container">
-        <TopPanel />
-        <MiddlePanel />
-        <BottomPanel />
-      </div>
-      <PopupDialog />
-    </>
-  ) : (
-    <InvalidSession sessionId={sessionId} />
-  )
 
+  // set session when component mount
+  useEffect(() => {
+    setSessionId(getSessionFromUrl())
+  }, [])
+
+  const getSessionFromUrl = useCallback(() => {
+    const params = new URLSearchParams(window.location.search),
+      session = params.get("session")
+    // verify the session
+    if (session) {
+      dispatch(verifySession({ sessionId: session }))
+    }
+    return params.get("session") || ""
+  }, [])
+
+  const getMainNode = useCallback(() => {
+    return sessionId ? (
+      <>
+        <LoadingOverlay isLoading={isLoading} />
+        <div className="app-container">
+          <TopPanel />
+          <MiddlePanel />
+          <BottomPanel />
+        </div>
+        <PopupDialog />
+      </>
+    ) : (
+      <>
+        <InvalidSession sessionId={sessionId} />
+      </>
+    )
+  }, [sessionId, isLoading])
+
+  let mainNode = getMainNode()
   return mainNode
 }

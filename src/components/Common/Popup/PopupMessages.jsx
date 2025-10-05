@@ -1,5 +1,6 @@
 import { Error, Success } from "@nrs/constants/PopupType"
 import { closePopup } from "@nrs/slices/commonSlice"
+import { ArrayEqual } from "@nrs/utils/common"
 import React, { useCallback } from "react"
 import { useDispatch } from "react-redux"
 import { useSelector } from "react-redux"
@@ -7,7 +8,7 @@ import { useSelector } from "react-redux"
 const PopupMessages = () => {
   const [message, errorCode] = useSelector((state) => {
       return [state.common.get("message"), state.common.get("errorCode")]
-    }),
+    }, ArrayEqual),
     dispatch = useDispatch()
 
   const onClose = useCallback(() => {
