@@ -370,13 +370,6 @@ const AvatarChat = () => {
     window.speechSynthesis.speak(utterance)
   }
 
-  // Start listening - triggered by mic button
-  const startListening = () => {
-    if (recognitionRef.current && !isListening && !isProcessing) {
-      recognitionRef.current.start()
-    }
-  }
-
   return (
     <main className="main">
       {/* Three.js container */}
