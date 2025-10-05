@@ -43,8 +43,8 @@ export default function App() {
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
   }, [])
-
-  let mainNode = (
+  // TODO: to add checking session id's validility
+  let mainNode = sessionId ? (
     <>
       <LoadingOverlay isLoading={isLoading} />
       <div className="app-container">
@@ -53,8 +53,9 @@ export default function App() {
         <BottomPanel />
       </div>
     </>
+  ) : (
+    <InvalidSession sessionId={sessionId} />
   )
 
-  // TODO: to add checking session id's validility
-  return sessionId ? mainNode : <InvalidSession sessionId={sessionId} />
+  return mainNode
 }

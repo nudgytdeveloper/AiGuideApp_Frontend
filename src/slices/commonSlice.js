@@ -1,0 +1,43 @@
+import { createSlice } from "@reduxjs/toolkit"
+import { fromJS } from "immutable"
+import { AIChat } from "@nrs/constants/PageType"
+
+const initialState = fromJS({
+  errorCode: null,
+  message: null,
+  selectedPageType: AIChat,
+  popUp: [],
+})
+
+const commonSlice = createSlice({
+  name: "common",
+  initialState,
+  reducers: {
+    openPopUp: (state) => {
+      return state
+    },
+    openPopUpSuccess: (state, action) => {
+      return state.merge(fromJS({ ...action.payload }))
+    },
+    closePopup: (state) => {
+      return state
+    },
+    closePopupSuccess: (state, action) => {
+      return state.merge(fromJS({ ...action.payload }))
+    },
+    updateAppMode: (state, actions) => {
+      const payload = actions.payload
+      return state.merge(fromJS(payload))
+    },
+  },
+})
+
+export const {
+  openPopUp,
+  closePopup,
+  openPopUpSuccess,
+  closePopupSuccess,
+  updateAppMode,
+} = commonSlice.actions
+
+export default commonSlice.reducer
