@@ -315,3 +315,52 @@
 .popup-button:hover {
   background-color: #b174e7;
 }
+/* end of popup css 8/
+/* === Conversation History (outside main, above footer) === */
+.conversation-history {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 61.5px; /* adjust accordingly to footer height */
+  max-height: 35vh; /* allow scrolling if long */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  pointer-events: auto;
+  z-index: 5; /* ensure it's above the canvas */
+}
+
+/* Chat bubbles */
+.bubble {
+  align-self: flex-start;
+  max-width: 80%;
+  padding: 10px 14px;
+  background: #7b2cbf;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: 14px;
+  border-bottom-left-radius: 6px;
+  word-break: break-word;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Right-aligned bubble (user message) */
+.bubble.user {
+  align-self: flex-end;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 6px;
+  background: #b288e4;
+}
+
+/* Smooth scroll and clean look */
+.conversation-history::-webkit-scrollbar {
+  width: 6px;
+}
+.conversation-history::-webkit-scrollbar-thumb {
+  background-color: rgba(123, 44, 191, 0.4);
+  border-radius: 3px;
+}

@@ -1,4 +1,5 @@
 import micIcon from "@nrs/assets/img/mic.png"
+import ConversationHistory from "@nrs/components/BottomPanel/ConversationHistory"
 import {
   setConversationHistory,
   setIsListening,
@@ -49,6 +50,7 @@ const BottomPanel = () => {
 
   // Initialize Speech Recognition
   useEffect(() => {
+    console.debug("conversation history: ", conversationHistory?.toJS())
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition
@@ -132,10 +134,12 @@ const BottomPanel = () => {
     dispatch(setIsProcessing(true))
 
     try {
+      console.debug("trying..")
       const messages = conversationHistory.map((msg) => ({
         role: msg.role,
         content: msg.content,
       }))
+      console.debug("push...")
       messages.push({ role: "user", content: userMessage })
 
       const response = await fetch(
@@ -222,25 +226,28 @@ const BottomPanel = () => {
   }
 
   return (
-    <footer className="chat-box">
-      <input
-        id="chatbox"
-        name="chatbox"
-        type="text"
-        placeholder="Type your message..."
-        onKeyPress={handleKeyPress}
-        disabled={isProcessing}
-      />
-      <button
-        className={`mic-btn ${isListening ? "listening" : ""} ${
-          isProcessing ? "processing" : ""
-        }`}
-        onClick={startListening}
-        disabled={isListening || isProcessing}
-      >
-        <img src={micIcon} alt="Mic" />
-      </button>
-    </footer>
+    <>
+      <ConversationHistory messages={conversationHistory} />
+      <footer className="chat-box">
+        <input
+          id="chatbox"
+          name="chatbox"
+          type="text"
+          placeholder="Type your message..."
+          onKeyPress={handleKeyPress}
+          disabled={isProcessing}
+        />
+        <button
+          className={`mic-btn ${isListening ? "listening" : ""} ${
+            isProcessing ? "processing" : ""
+          }`}
+          onClick={startListening}
+          disabled={isListening || isProcessing}
+        >
+          <img src={micIcon} alt="Mic" />
+        </button>
+      </footer>
+    </>
   )
 }
 
