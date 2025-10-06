@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react"
 import "./App.css"
-import InvalidSession from "./components/invalidSession"
+import InvalidSession from "@nrs/components/invalidSession"
 import TopPanel from "@nrs/components/TopPanel/index.jsx"
 import MiddlePanel from "@nrs/components/MiddlePanel"
 import BottomPanel from "@nrs/components/BottomPanel"
