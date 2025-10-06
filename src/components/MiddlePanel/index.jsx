@@ -7,6 +7,7 @@ import { setPageType } from "@nrs/slices/commonSlice"
 import { ArrayEqual } from "@nrs/utils/common"
 import { useCallback } from "react"
 import LiveFeed from "@nrs/components/LiveFeed"
+import LiveScan from "@nrs/components/MiddlePanel/LiveScan"
 
 const MiddlePanel = () => {
   const dispatch = useDispatch(),
@@ -24,7 +25,7 @@ const MiddlePanel = () => {
 
   return (
     <main className="main">
-      {selectedPageType == AIChat ? <AvatarChat /> : <></>}
+      {selectedPageType == AIChat ? <AvatarChat /> : <LiveScan />}
       {selectedPageType == AIChat ? (
         <div className="video-preview">
           <LiveFeed />
