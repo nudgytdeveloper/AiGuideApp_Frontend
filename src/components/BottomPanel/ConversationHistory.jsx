@@ -11,14 +11,16 @@ const ConversationHistory = (props) => {
 
   return (
     <div className="conversation-history" ref={listRef}>
-      {filteredMessage.map((m, i) => (
-        <div
-          key={i}
-          className={`bubble ${m.get("role") === "user" ? "user" : ""}`}
-        >
-          {m.get("content")}
-        </div>
-      ))}
+      {filteredMessage.map((m, i) =>
+        m.get("content") == "" ? null : (
+          <div
+            key={i}
+            className={`bubble ${m.get("role") === "user" ? "user" : ""}`}
+          >
+            {m.get("content")}
+          </div>
+        )
+      )}
     </div>
   )
 }

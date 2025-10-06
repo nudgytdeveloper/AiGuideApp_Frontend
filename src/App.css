@@ -90,7 +90,7 @@
 .action-buttons {
   position: absolute;
   right: 0px;
-  bottom: 120px;
+  bottom: 250px;
   display: flex;
   flex-direction: column;
   gap: 12px;

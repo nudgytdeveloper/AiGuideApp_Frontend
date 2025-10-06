@@ -99,7 +99,6 @@ const BottomPanel = () => {
       resetConversationHistory()
     }
     dispatch(setLastInteractionTime(currentTime))
-    console.debug("set chat 3")
     dispatch(
       setConversationHistory({
         role: role,
@@ -167,7 +166,6 @@ const BottomPanel = () => {
 
       const data = await response.json()
       const aiResponse = data.choices[0].message.content
-      console.debug("set chat 2")
       dispatch(
         setConversationHistory({
           role: "assistant",
@@ -182,7 +180,6 @@ const BottomPanel = () => {
 
       const fallbackResponse =
         "I'm sorry, I'm having trouble connecting to my AI service right now. Can you try again?"
-      console.debug("set chat 1")
       dispatch(
         setConversationHistory({
           role: "assistant",
