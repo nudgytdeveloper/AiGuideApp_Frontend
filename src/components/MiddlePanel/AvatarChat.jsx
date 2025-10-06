@@ -4,10 +4,6 @@ import scanIcon from "@nrs/assets/img/live_scan.png"
 //libraries for the avatar and LLM components
 import * as THREE from "three"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
-import { useSelector } from "react-redux"
-import { ArrayEqual } from "@nrs/utils/common"
-import { useDispatch } from "react-redux"
-import { setIsListening, setIsProcessing } from "@nrs/slices/chatSlice"
 
 // Avatarchat: includes LLM, avatar and basic body animation components
 const AvatarChat = () => {
@@ -19,15 +15,6 @@ const AvatarChat = () => {
   const clockRef = useRef(null)
   const modelRef = useRef(null)
   const animationFrameRef = useRef(null)
-
-  // const [isProcessing, conversationHistory] = useSelector((state) => {
-  //     const chatState = state.chat
-  //     return [
-  //       chatState.get("isProcessing"),
-  //       chatState.get("conversationHistory"),
-  //     ]
-  //   }, ArrayEqual),
-  //   dispatch = useDispatch()
 
   // Filter animation to only include position and rotation tracks
   const filterAnimation = (animation) => {

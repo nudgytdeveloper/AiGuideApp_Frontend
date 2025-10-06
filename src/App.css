@@ -90,10 +90,31 @@
 .action-buttons {
   position: absolute;
   right: 0px;
-  bottom: 250px;
+  bottom: 240px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* 📱 For smaller screens (height < 700px) */
+@media (min-height: 820px) {
+  .action-buttons {
+    bottom: 300px;
+  }
+}
+
+/* 💻 For larger screens (height > 900px) */
+@media (min-height: 895px) {
+  .action-buttons {
+    bottom: 330px; /* move higher on big displays */
+  }
+}
+
+/* 🖥️ For ultra-large screens (height > 1100px) */
+@media (min-height: 1100px) {
+  .action-buttons {
+    bottom: 360px;
+  }
 }
 
 .action-btn {
