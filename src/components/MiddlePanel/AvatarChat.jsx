@@ -93,7 +93,7 @@ const AvatarChat = () => {
     const loader = new GLTFLoader()
 
     loader.load(
-      "src/SCB_female.glb",
+      "/models/SCB_female.glb",
       (gltf) => {
         const model = gltf.scene
         model.position.y = -0.3 // Move the model down
@@ -112,7 +112,7 @@ const AvatarChat = () => {
 
         // Load idle animation
         loader.load(
-          "src/idle.glb",
+          "/animations/idle.glb",
           (animGltf) => {
             if (animGltf.animations && animGltf.animations.length > 0) {
               const clip = filterAnimation(animGltf.animations[0])
