@@ -13,3 +13,6 @@ yarn-error.log*
 .vscode/
 .idea/
 .DS_Store
+
+# Environment file
+.env
