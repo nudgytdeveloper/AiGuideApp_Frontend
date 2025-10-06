@@ -4,6 +4,7 @@ import scanIcon from "@nrs/assets/img/live_scan.png"
 //libraries for the avatar and LLM components
 import * as THREE from "three"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
+import LiveFeed from "@nrs/components/LiveFeed"
 
 // Avatarchat: includes LLM, avatar and basic body animation components
 const AvatarChat = () => {
@@ -192,7 +193,7 @@ const AvatarChat = () => {
 
       {/* Keep existing floating elements */}
       <div className="video-preview">
-        <img src="" alt="" />
+        <LiveFeed />
       </div>
       <div className="action-buttons">
         <button className="action-btn">
