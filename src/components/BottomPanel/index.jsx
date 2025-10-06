@@ -133,38 +133,46 @@ const BottomPanel = () => {
     dispatch(setIsProcessing(true))
 
     try {
-      console.debug("trying..")
-      const messages = conversationHistory.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
+      const msgs = conversationHistory.map((msg) => ({
+        role: msg.get("role"),
+        content: msg.get("content"),
       }))
-      console.debug("push...")
-      messages.push({ role: "user", content: userMessage })
+      msgs.push({ role: "user", content: userMessage })
+      const messages = msgs?.toJS()
 
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: messages,
-            max_tokens: 150,
-            temperature: 0.7,
-            presence_penalty: 0.1,
-            frequency_penalty: 0.1,
-          }),
-        }
-      )
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      })
+      console.debug("RES 1: ", response)
+      console.log("RES 2: ", response)
+      // const response = await fetch(
+      //   "https://api.openai.com/v1/chat/completions",
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer `,
+      //     },
+      //     body: JSON.stringify({
+      //       model: "gpt-4o-mini",
+      //       messages: messages?.toJS(),
+      //       max_tokens: 150,
+      //       temperature: 0.7,
+      //       presence_penalty: 0.1,
+      //       frequency_penalty: 0.1,
+      //     }),
+      //   }
+      // )
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
+      console.debug("DATA 1: ", data)
+      console.log("DATA 2: ", data)
       const aiResponse = data.choices[0].message.content
       dispatch(
         setConversationHistory({
