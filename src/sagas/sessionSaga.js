@@ -4,6 +4,7 @@ import { verifySession, verifySessionSuccess } from "@nrs/slices/sessionSlice"
 import { BadRequest, NotFound } from "@nrs/constants/StatusCode"
 import * as PopupType from "@nrs/constants/PopupType"
 import { openPopUp, setIsLoading } from "@nrs/slices/commonSlice"
+import { setConversationHistory } from "@nrs/slices/chatSlice"
 
 function* verifySessionFunc(action) {
   try {
@@ -16,8 +17,11 @@ function* verifySessionFunc(action) {
 
     const result = yield call(Api.verifySession, param)
     if (result) {
-      console.log("verify result: ", result)
-      yield put(verifySessionSuccess({ result }))
+      console.log("verify result: ", result.data.chatData)
+      yield put(verifySessionSuccess({ sessionId: result.id }))
+      yield put(
+        setConversationHistory({ conversationHistory: result.data.chatData })
+      )
       yield put(setIsLoading({ isLoading: false }))
     } else {
       console.log("Error while verifying..")

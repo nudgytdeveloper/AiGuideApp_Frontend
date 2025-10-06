@@ -1,7 +1,7 @@
 import { takeLatest, call, cancelled, put, select } from "redux-saga/effects"
 import {
-  setConversationHistory,
-  setConversationHistorySuccess,
+  addConversationHistory,
+  addConversationHistorySuccess,
 } from "@nrs/slices/chatSlice"
 import { fromJS } from "immutable"
 
@@ -26,9 +26,8 @@ function* setChatHistoryFunc(action) {
       const tail = newChatHistory.slice(-limit)
       nextHistory = List([first, ...tail.toArray()])
     }
-    console.debug("next history: ", nextHistory?.toJS())
     yield put(
-      setConversationHistorySuccess({ conversationHistory: nextHistory })
+      addConversationHistorySuccess({ conversationHistory: nextHistory })
     )
   } catch (err) {
     console.log(err)
@@ -38,5 +37,5 @@ function* setChatHistoryFunc(action) {
   }
 }
 export default function* rootSaga() {
-  yield takeLatest(setConversationHistory.type, setChatHistoryFunc)
+  yield takeLatest(addConversationHistory.type, setChatHistoryFunc)
 }

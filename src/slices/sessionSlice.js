@@ -3,9 +3,6 @@ import { fromJS } from "immutable"
 
 const initialState = fromJS({
   sessionId: null,
-  chatData: [],
-  isProcessing: false,
-  isListening: false,
 })
 
 const sessionSlice = createSlice({

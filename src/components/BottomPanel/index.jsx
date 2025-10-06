@@ -1,7 +1,7 @@
 import micIcon from "@nrs/assets/img/mic.png"
 import ConversationHistory from "@nrs/components/BottomPanel/ConversationHistory"
 import {
-  setConversationHistory,
+  addConversationHistory,
   setIsListening,
   setIsProcessing,
   setLastInteractionTime,
@@ -50,7 +50,6 @@ const BottomPanel = () => {
 
   // Initialize Speech Recognition
   useEffect(() => {
-    console.debug("conversation history: ", conversationHistory?.toJS())
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition
@@ -93,14 +92,13 @@ const BottomPanel = () => {
   // Add message to conversation history
   const addToConversationHistory = (role, content) => {
     const currentTime = Date.now()
-    console.debug("global", window.global)
     // Check if conversation has timed out
     if (currentTime - lastInteractionTime > window.global.conversationTimeout) {
       resetConversationHistory()
     }
     dispatch(setLastInteractionTime(currentTime))
     dispatch(
-      setConversationHistory({
+      addConversationHistory({
         role: role,
         content: content,
         timestamp: currentTime,
@@ -115,14 +113,16 @@ const BottomPanel = () => {
   // Reset conversation history
   const resetConversationHistory = () => {
     dispatch(
-      setConversationHistory([
-        {
-          role: "system",
-          content:
-            "You are the AI Assistant for a Singaporean company called Nudgyt. You are nice and friendly.",
-          timestamp: Date.now(),
-        },
-      ])
+      setConversationHistory({
+        conversationHistory: [
+          {
+            role: "system",
+            content:
+              "You are the AI Assistant for a Singaporean company called Nudgyt. You are nice and friendly.",
+            timestamp: Date.now(),
+          },
+        ],
+      })
     )
   }
 
@@ -133,49 +133,30 @@ const BottomPanel = () => {
     dispatch(setIsProcessing(true))
 
     try {
-      const msgs = conversationHistory.map((msg) => ({
-        role: msg.get("role"),
-        content: msg.get("content"),
-      }))
-      msgs.push({ role: "user", content: userMessage })
-      const messages = msgs?.toJS()
+      const messages = conversationHistory
+        .map((msg) => ({
+          role: msg.get("role"),
+          content: msg.get("content"),
+        }))
+        .toJS()
+      messages.push({ role: "user", content: userMessage })
+      const prefix = import.meta.env.VITE_API_PREFIX
 
-      const response = await fetch("/chat", {
+      const response = await fetch(`${prefix}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
       })
-      console.debug("RES 1: ", response)
-      console.log("RES 2: ", response)
-      // const response = await fetch(
-      //   "https://api.openai.com/v1/chat/completions",
-      //   {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //       Authorization: `Bearer `,
-      //     },
-      //     body: JSON.stringify({
-      //       model: "gpt-4o-mini",
-      //       messages: messages?.toJS(),
-      //       max_tokens: 150,
-      //       temperature: 0.7,
-      //       presence_penalty: 0.1,
-      //       frequency_penalty: 0.1,
-      //     }),
-      //   }
-      // )
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
-      console.debug("DATA 1: ", data)
-      console.log("DATA 2: ", data)
       const aiResponse = data.choices[0].message.content
+
       dispatch(
-        setConversationHistory({
+        addConversationHistory({
           role: "assistant",
           content: aiResponse,
           timestamp: Date.now(),
@@ -189,7 +170,7 @@ const BottomPanel = () => {
       const fallbackResponse =
         "I'm sorry, I'm having trouble connecting to my AI service right now. Can you try again?"
       dispatch(
-        setConversationHistory({
+        addConversationHistory({
           role: "assistant",
           content: fallbackResponse,
           timestamp: Date.now(),
