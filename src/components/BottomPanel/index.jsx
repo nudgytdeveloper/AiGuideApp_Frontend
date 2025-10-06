@@ -1,5 +1,6 @@
 import micIcon from "@nrs/assets/img/mic.png"
 import ConversationHistory from "@nrs/components/BottomPanel/ConversationHistory"
+import { AIChat } from "@nrs/constants/PageType"
 import {
   addConversationHistory,
   setIsListening,
@@ -12,16 +13,22 @@ import { useDispatch } from "react-redux"
 import { useSelector } from "react-redux"
 
 const BottomPanel = () => {
-  const [isListening, isProcessing, conversationHistory, lastInteractionTime] =
-      useSelector((state) => {
-        const chatState = state.chat
-        return [
-          chatState.get("isListening"),
-          chatState.get("isProcessing"),
-          chatState.get("conversationHistory"),
-          chatState.get("lastInteractionTime"),
-        ]
-      }, ArrayEqual),
+  const [
+      isListening,
+      isProcessing,
+      conversationHistory,
+      lastInteractionTime,
+      selectedPageType,
+    ] = useSelector((state) => {
+      const chatState = state.chat
+      return [
+        chatState.get("isListening"),
+        chatState.get("isProcessing"),
+        chatState.get("conversationHistory"),
+        chatState.get("lastInteractionTime"),
+        state.common.get("selectedPageType"),
+      ]
+    }, ArrayEqual),
     dispatch = useDispatch(),
     recognitionRef = useRef(null)
 
@@ -213,7 +220,9 @@ const BottomPanel = () => {
 
   return (
     <>
-      <ConversationHistory messages={conversationHistory} />
+      {selectedPageType == AIChat ? (
+        <ConversationHistory messages={conversationHistory} />
+      ) : null}
       <footer className="chat-box">
         <input
           id="chatbox"

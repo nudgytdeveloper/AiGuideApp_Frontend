@@ -26,9 +26,12 @@ const commonSlice = createSlice({
     closePopupSuccess: (state, action) => {
       return state.merge(fromJS({ ...action.payload }))
     },
-    updateAppMode: (state, actions) => {
-      const payload = actions.payload
-      return state.merge(fromJS(payload))
+    setPageType: (state, action) => {
+      return state.merge(
+        fromJS({
+          selectedPageType: action.payload,
+        })
+      )
     },
     setIsLoading: (state, action) => {
       return state.merge(
@@ -45,7 +48,7 @@ export const {
   closePopup,
   openPopUpSuccess,
   closePopupSuccess,
-  updateAppMode,
+  setPageType,
   setIsLoading,
 } = commonSlice.actions
 

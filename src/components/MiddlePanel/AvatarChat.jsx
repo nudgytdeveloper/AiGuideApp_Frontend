@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react"
-import mapIcon from "@nrs/assets/img/find_map.png"
-import scanIcon from "@nrs/assets/img/live_scan.png"
 //libraries for the avatar and LLM components
 import * as THREE from "three"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
-import LiveFeed from "@nrs/components/LiveFeed"
 
 // Avatarchat: includes LLM, avatar and basic body animation components
 const AvatarChat = () => {
@@ -178,32 +175,16 @@ const AvatarChat = () => {
   }, [])
 
   return (
-    <main className="main">
-      {/* Three.js container */}
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: "100%",
-          position: "absolute",
-          top: 0,
-          left: 0,
-        }}
-      />
-
-      {/* Keep existing floating elements */}
-      <div className="video-preview">
-        <LiveFeed />
-      </div>
-      <div className="action-buttons">
-        <button className="action-btn">
-          <img src={mapIcon} height={80} width={80} alt="Map" />
-        </button>
-        <button className="action-btn">
-          <img src={scanIcon} height={80} width={80} alt="Scan" />
-        </button>
-      </div>
-    </main>
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "absolute",
+        top: 0,
+        left: 0,
+      }}
+    />
   )
 }
 export default AvatarChat

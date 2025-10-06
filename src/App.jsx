@@ -10,13 +10,15 @@ import { verifySession } from "@nrs/slices/sessionSlice"
 import PopupDialog from "@nrs/components/Common/Popup/PopupDialog"
 import { useSelector } from "react-redux"
 import { ArrayEqual } from "@nrs/utils/common"
+import { AIChat } from "@nrs/constants/PageType"
 
 // Main App component
 export default function App() {
   const dispatch = useDispatch(),
     [sessionId, setSessionId] = useState(null),
-    [isLoading] = useSelector((state) => {
-      return [state.common.get("isLoading")]
+    [isLoading, selectedPageType] = useSelector((state) => {
+      const commonState = state.common
+      return [commonState.get("isLoading"), commonState.get("selectedPageType")]
     }, ArrayEqual)
 
   // get session from url
@@ -59,7 +61,7 @@ export default function App() {
         <InvalidSession sessionId={sessionId} />
       </>
     )
-  }, [sessionId, isLoading])
+  }, [sessionId, isLoading, selectedPageType])
 
   let mainNode = getMainNode()
   return mainNode
