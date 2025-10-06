@@ -19,16 +19,15 @@ const AvatarChat = () => {
   const clockRef = useRef(null)
   const modelRef = useRef(null)
   const animationFrameRef = useRef(null)
-  const recognitionRef = useRef(null)
 
-  const [isProcessing, conversationHistory] = useSelector((state) => {
-      const chatState = state.chat
-      return [
-        chatState.get("isProcessing"),
-        chatState.get("conversationHistory"),
-      ]
-    }, ArrayEqual),
-    dispatch = useDispatch()
+  // const [isProcessing, conversationHistory] = useSelector((state) => {
+  //     const chatState = state.chat
+  //     return [
+  //       chatState.get("isProcessing"),
+  //       chatState.get("conversationHistory"),
+  //     ]
+  //   }, ArrayEqual),
+  //   dispatch = useDispatch()
 
   // Filter animation to only include position and rotation tracks
   const filterAnimation = (animation) => {
@@ -189,185 +188,6 @@ const AvatarChat = () => {
       renderer.dispose()
     }
   }, [])
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition
-      const recognition = new SpeechRecognition()
-
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = "en-US"
-
-      recognition.onstart = () => {
-        dispatch(setIsListening(true))
-      }
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript
-        addToConversationHistory("user", transcript)
-      }
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error)
-        dispatch(setIsListening(false))
-      }
-
-      recognition.onend = () => {
-        dispatch(setIsListening(false))
-      }
-
-      recognitionRef.current = recognition
-    } else {
-      console.warn("Speech recognition not supported in this browser")
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort()
-      }
-    }
-  }, [])
-
-  // Add message to conversation history
-  const addToConversationHistory = (role, content) => {
-    const currentTime = Date.now()
-
-    // Check if conversation has timed out
-    if (currentTime - lastInteractionTime > window.global.conversationTimeout) {
-      resetConversationHistory()
-    }
-
-    setLastInteractionTime(currentTime)
-
-    setConversationHistory((prev) => {
-      const newHistory = [...prev, { role, content, timestamp: currentTime }]
-
-      // Keep conversation history manageable
-      if (newHistory.length > window.global.maxHistoryLength + 1) {
-        return [
-          newHistory[0],
-          ...newHistory.slice(-window.global.maxHistoryLength),
-        ]
-      }
-
-      return newHistory
-    })
-
-    if (role === "user") {
-      processWithLLM(content)
-    }
-  }
-
-  // Reset conversation history
-  const resetConversationHistory = () => {
-    setConversationHistory([
-      {
-        role: "system",
-        content:
-          "You are the AI Assistant for a Singaporean company called Nudgyt. You are nice and friendly.",
-      },
-    ])
-  }
-
-  // Process with LLM
-  const processWithLLM = async (userMessage) => {
-    if (isProcessing) return
-
-    dispatch(setIsProcessing(true))
-
-    try {
-      const messages = conversationHistory.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }))
-      messages.push({ role: "user", content: userMessage })
-
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer ",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: messages,
-            max_tokens: 150,
-            temperature: 0.7,
-            presence_penalty: 0.1,
-            frequency_penalty: 0.1,
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      const aiResponse = data.choices[0].message.content
-
-      setConversationHistory((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: aiResponse,
-          timestamp: Date.now(),
-        },
-      ])
-
-      speakResponse(aiResponse)
-    } catch (error) {
-      console.error("Error calling LLM:", error)
-
-      const fallbackResponse =
-        "I'm sorry, I'm having trouble connecting to my AI service right now. Can you try again?"
-      setConversationHistory((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: fallbackResponse,
-          timestamp: Date.now(),
-        },
-      ])
-      speakResponse(fallbackResponse)
-    } finally {
-      dispatch(setIsProcessing(false))
-    }
-  }
-
-  // Text to speech
-  const speakResponse = (text) => {
-    window.speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.9
-    utterance.pitch = 1
-    utterance.volume = 0.8
-    utterance.lang = "en-US"
-
-    const voices = window.speechSynthesis.getVoices()
-    const englishVoices = voices.filter(
-      (voice) => voice.lang.startsWith("en-") || voice.lang === "en"
-    )
-
-    const preferredVoice = englishVoices.find(
-      (voice) =>
-        voice.name.includes("Samantha") ||
-        voice.name.includes("Karen") ||
-        voice.name.toLowerCase().includes("female")
-    )
-
-    if (preferredVoice || englishVoices[0]) {
-      utterance.voice = preferredVoice || englishVoices[0]
-    }
-
-    window.speechSynthesis.speak(utterance)
-  }
 
   return (
     <main className="main">

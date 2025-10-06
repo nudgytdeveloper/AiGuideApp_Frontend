@@ -32,17 +32,32 @@ const chatSlice = createSlice({
         })
       )
     },
-    setConversationHistory: (state, action) => {
+    setConversationHistory: (state) => {
+      return state
+    },
+    setConversationHistorySuccess: (state, action) => {
       return state.merge(
         fromJS({
-          conversationHistory: action.payload,
+          ...action.payload,
+        })
+      )
+    },
+    setLastInteractionTime: (state, action) => {
+      return state.merge(
+        fromJS({
+          lastInteractionTime: action.payload,
         })
       )
     },
   },
 })
 
-export const { setIsProcessing, setIsListening, setConversationHistory } =
-  chatSlice.actions
+export const {
+  setIsProcessing,
+  setIsListening,
+  setConversationHistory,
+  setConversationHistorySuccess,
+  setLastInteractionTime,
+} = chatSlice.actions
 
 export default chatSlice.reducer
