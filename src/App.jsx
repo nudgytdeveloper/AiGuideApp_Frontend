@@ -10,7 +10,6 @@ import { verifySession } from "@nrs/slices/sessionSlice"
 import PopupDialog from "@nrs/components/Common/Popup/PopupDialog"
 import { useSelector } from "react-redux"
 import { ArrayEqual } from "@nrs/utils/common"
-import { AIChat } from "@nrs/constants/PageType"
 
 // Main App component
 export default function App() {
