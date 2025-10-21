@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { getMapData, show3dMap } from "@mappedin/mappedin-js"
-import "@mappedin/mappedin-js/lib/mappedin.css"
+// import "@mappedin/mappedin-js/lib/mappedin.css"
 
 const MappedinMap = () => {
   const mapContainer = useRef(null)
@@ -22,7 +22,7 @@ const MappedinMap = () => {
   return (
     <div
       ref={mapContainer}
-      style={{ width: "100%", height: "100vh" }}
+      style={{ width: "100%", height: "100%" }}
       id="map"
     />
   )
