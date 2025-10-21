@@ -3,7 +3,7 @@ const prefix = import.meta.env.VITE_API_PREFIX
 
 const Api = {
   verifySession: (payload) => {
-    return get(`${prefix}api/session/access`, payload)
+    return get(`${prefix}/api/session/access`, payload)
   },
 }
 

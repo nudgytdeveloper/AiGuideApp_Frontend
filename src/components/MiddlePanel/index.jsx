@@ -25,7 +25,13 @@ const MiddlePanel = () => {
 
   return (
     <main className="main">
-      {selectedPageType == AIChat ? <AvatarChat /> : <LiveScan />}
+      {selectedPageType == AIChat ? (
+        <AvatarChat />
+      ) : selectedPageType == Navigation ? (
+        <MappedinMap />
+      ) : (
+        <LiveScan />
+      )}
       {selectedPageType == AIChat ? (
         <div className="video-preview">
           <LiveFeed />

@@ -17,10 +17,9 @@ function* verifySessionFunc(action) {
 
     const result = yield call(Api.verifySession, param)
     if (result) {
-      console.log("verify result: ", result.data.chatData)
       yield put(verifySessionSuccess({ sessionId: result.id }))
       yield put(
-        setConversationHistory({ conversationHistory: result.data.chatData })
+        setConversationHistory({ conversationHistory: result.data.chat_data })
       )
       yield put(setIsLoading({ isLoading: false }))
     } else {
@@ -35,7 +34,7 @@ function* verifySessionFunc(action) {
       yield put(setIsLoading({ isLoading: false }))
     }
   } catch (err) {
-    console.log("Error here")
+    console.log("Error here: ", err)
     yield put(
       openPopUp({
         popupType: PopupType.Error,

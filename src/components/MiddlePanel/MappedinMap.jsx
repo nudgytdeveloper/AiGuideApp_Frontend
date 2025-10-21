@@ -9,8 +9,8 @@ const MappedinMap = () => {
     const init = async () => {
       const mapData = await getMapData({
         mapId: "68edec68d24915000bbf8757", // Science Centre map ID
-        key: "YOUR_API_KEY_HERE",
-        secret: "YOUR_API_SECRET_HERE",
+        key: "mik_DUwlsWsBypbdww8je5ad50840",
+        secret: "mis_dylRwkoXQb3ocvaZURE20d0wQLJ6BgEINpYw9t9EQNy9a0b1054",
       })
 
       await show3dMap(mapContainer.current, mapData)
