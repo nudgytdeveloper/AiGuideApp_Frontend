@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react"
-import { MapView, useMapData, useMap } from "@mappedin/react-sdk"
-import NavigatorOverlay from "@nrs/components/MiddlePanel/navigation/NavigatorOverlay"
+import React from "react"
+import { MapView, useMapData } from "@mappedin/react-sdk"
+import MapOverlay from "@nrs/components/MiddlePanel/navigation/MapOverlay"
 
 const MappedinMap = () => {
   const { isLoading, error, mapData } = useMapData({
@@ -25,7 +25,7 @@ const MappedinMap = () => {
           width: "100%",
         }}
       >
-        <NavigatorOverlay />
+        <MapOverlay />
       </MapView>
     </div>
   ) : null
