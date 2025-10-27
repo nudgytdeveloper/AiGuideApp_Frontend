@@ -58,6 +58,7 @@ const MapOverlay = () => {
         if (directions) {
           console.debug("draw Directions...")
           mapView.Navigation.draw(directions)
+          // mapView.Paths.add(directions.coordinates)
         }
       }
     },
