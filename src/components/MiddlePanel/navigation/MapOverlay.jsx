@@ -21,9 +21,6 @@ const MapOverlay = () => {
         hoverColor: "#ff9900",
       })
     })
-    console.debug(
-      `[MarkerOverlay] Applied interactive+hoverColor to ${spaces.length} spaces`
-    )
   }, [mapData, mapView, spaces])
 
   //   useEffect(() => {
