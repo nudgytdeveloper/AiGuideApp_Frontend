@@ -3,12 +3,14 @@ import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
 import { BlueDot } from "@mappedin/blue-dot"
 
 const MapOverlay = () => {
-  const { mapData, mapView } = useMap(),
-    startSpaceRef = useRef(null)
+  const { mapData, mapView } = useMap()
+
+  // store first click between renders
+  const startCoordRef = useRef(null)
 
   const spaces = useMemo(() => {
     if (!mapData) return []
-    return mapData.getByType("space")?.filter((space) => space?.name) || []
+    return mapData.getByType("space")?.filter((s) => s?.name) || []
   }, [mapData])
 
   useEffect(() => {
@@ -19,74 +21,100 @@ const MapOverlay = () => {
         hoverColor: "#ff9900",
       })
     })
+
+    for (const poi of mapData.getByType("point-of-interest")) {
+      // Label the point of interest if it's on the map floor currently shown.
+      if (poi.floor.id === mapView.currentFloor.id) {
+        mapView.Labels.add(poi.coordinate, poi.name)
+      }
+    }
   }, [mapData, mapView, spaces])
-  // TODO: Error Occur when enable blue dot code here..
+
+  // enable BlueDot (optional, keep if it's stable for you)
   // useEffect(() => {
   //   if (!mapView) return
   //   const blueDot = new BlueDot(mapView)
-  //   blueDot.enable({ debug: true })
-  //   return () => blueDot.disable()
+
+  //   blueDot.enable({
+  //     debug: true,
+  //     accuracyRing: { opacity: 0.2 },
+  //     heading: { color: "aqua", opacity: 1 },
+  //     inactiveColor: "wheat",
+  //     timeout: 20000,
+  //   })
+
+  //   return () => {
+  //     blueDot.disable()
+  //   }
   // }, [mapView])
 
   useMapViewEvent(
     "click",
     async (event) => {
       const clickedSpace = event?.spaces?.[0]
+      // console.debug("event: ", event)
       if (!clickedSpace) return
 
-      console.debug("clicked space:", clickedSpace)
       console.debug(
         "clicked space full:",
         JSON.stringify(clickedSpace, null, 2)
       )
 
-      // choose the first nav target inside this space
-      const clickedTarget = clickedSpace?.navigationTargets?.[0]
-      if (!clickedTarget) {
-        console.warn("No navigation target for clicked space")
+      const targetCoord = clickedSpace.center
+      if (
+        !targetCoord ||
+        !targetCoord.latitude ||
+        !targetCoord.longitude ||
+        !targetCoord.floorId
+      ) {
+        console.warn("No routable center coord for clicked space")
         return
       }
 
-      if (!startSpaceRef.current) {
-        // first click = start
-        startSpaceRef.current = clickedTarget
-        console.debug("setting start space:", clickedSpace.name)
+      // first click -> set start point
+      if (!startCoordRef.current) {
+        startCoordRef.current = targetCoord
+        console.debug("Start set at:", clickedSpace.name, startCoordRef.current)
         return
       }
 
-      // second click = end
-      console.debug("detect end space:", clickedSpace.name)
+      // second click -> attempt route
+      console.debug("Routing to:", clickedSpace.name, targetCoord)
 
       try {
-        const directions = await mapView.getDirections({
-          from: startSpaceRef.current,
-          to: clickedTarget,
-        })
-
-        // depending on SDK build this may be .path or .coordinates
-        const pathCoords = directions?.path || directions?.coordinates
-
-        if (!pathCoords || pathCoords.length === 0) {
-          console.warn("No valid path returned.")
+        console.debug("try 0")
+        // Try modern object signature first here..
+        let directions
+        try {
+          console.debug("try 1")
+          directions = await mapView.getDirections({
+            from: startCoordRef.current,
+            to: targetCoord,
+          })
+        } catch (e1) {
+          console.debug("catch 1")
+          // Fallback to 2-arg signature (older SDK builds)
+          directions = await mapView.getDirections(
+            startCoordRef.current,
+            targetCoord
+          )
+        }
+        if (!directions) {
+          console.warn("No directions returned.")
           return
         }
-
-        console.debug("drawing path...")
-        mapView.addPath(pathCoords, {
-          color: "#4B7BE5",
-          width: 4,
-        })
+        mapView.Navigation.draw(directions)
       } catch (err) {
         console.error("Error while getting directions:", err)
       } finally {
-        // reset so next click starts a new route
-        startSpaceRef.current = null
+        // reset so next tap begins a new route
+        startCoordRef.current = null
       }
     },
     [mapView]
   )
 
-  // Hover not working on mobile app view but only works on desktop
+  // hover debug (desktop only)
   useMapViewEvent(
     "hover",
     (event) => {

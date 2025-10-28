@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@mappedin/blue-dot": "6.0.1-beta.59",
-    "@mappedin/mappedin-js": "^6.0.0",
     "@mappedin/react-sdk": "^6.1.2",
     "@reduxjs/toolkit": "^2.2.3",
     "face-api.js": "^0.22.2",
