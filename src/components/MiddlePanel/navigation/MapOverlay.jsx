@@ -13,8 +13,30 @@ const MapOverlay = () => {
     return mapData.getByType("space")?.filter((s) => s?.name) || []
   }, [mapData])
 
+  const pois = useMemo(() => {
+    if (!mapData) return []
+    return mapData.getByType("point-of-interest") || []
+  }, [mapData])
+
+  // console.debug("pois: ", pois)
+
   useEffect(() => {
     if (!mapData || !mapView) return
+
+    if (mapView) {
+      const initialFloorId = mapView.currentFloor?.id
+      if (initialFloorId) {
+        const initialLatitude = 1.332779108782505,
+          initialLongitude = 103.73585230485095,
+          centerCoord = {
+            latitude: initialLatitude,
+            longitude: initialLongitude,
+            floorId: initialFloorId,
+          }
+        mapView.Camera.set({ center: centerCoord, zoomLevel: 18 })
+      }
+    }
+
     spaces.forEach((space) => {
       mapView.updateState(space, {
         interactive: true,
@@ -22,7 +44,7 @@ const MapOverlay = () => {
       })
     })
 
-    for (const poi of mapData.getByType("point-of-interest")) {
+    for (const poi of pois) {
       // Label the point of interest if it's on the map floor currently shown.
       if (poi.floor.id === mapView.currentFloor.id) {
         mapView.Labels.add(poi.coordinate, poi.name)
@@ -52,7 +74,7 @@ const MapOverlay = () => {
     "click",
     async (event) => {
       const clickedSpace = event?.spaces?.[0]
-      // console.debug("event: ", event)
+      console.debug("event: ", event)
       if (!clickedSpace) return
 
       console.debug(
