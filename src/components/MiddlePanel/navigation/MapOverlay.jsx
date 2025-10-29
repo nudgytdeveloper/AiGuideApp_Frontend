@@ -16,7 +16,7 @@ const MapOverlay = () => {
     return mapData.getByType("point-of-interest") || []
   }, [mapData])
 
-  // console.debug("pois: ", pois)
+  console.debug("pois: ", pois)
 
   useEffect(() => {
     if (!mapData || !mapView) return
@@ -41,74 +41,102 @@ const MapOverlay = () => {
         hoverColor: "#ff9900",
       })
     })
-
-    for (const poi of pois) {
-      if (poi.floor.id === mapView.currentFloor.id) {
-        mapView.Labels.add(poi.coordinate, poi.name)
-      }
-    }
   }, [mapData, mapView, spaces])
 
   // BlueDot
-  useEffect(() => {
-    if (!mapView) return
+  // useEffect(() => {
+  //   if (!mapView) return
 
-    const blueDot = new BlueDot(mapView)
+  //   const blueDot = new BlueDot(mapView)
 
-    try {
-      blueDot.on?.("position-update", (update) => {
-        console.debug("[BlueDot] position-update:", update)
-      })
-      blueDot.on?.("state-change", (state) => {
-        console.debug("[BlueDot] state-change:", state)
-      })
-    } catch (err) {
-      console.warn("[BlueDot] attaching listeners failed:", err)
-    }
+  //   try {
+  //     blueDot.on?.("position-update", (update) => {
+  //       console.debug("[BlueDot] position-update:", update)
+  //     })
+  //     blueDot.on?.("state-change", (state) => {
+  //       console.debug("[BlueDot] state-change:", state)
+  //     })
+  //   } catch (err) {
+  //     console.warn("[BlueDot] attaching listeners failed:", err)
+  //   }
 
-    blueDot.enable({
-      debug: true,
-    })
+  //   blueDot.enable({
+  //     debug: true,
+  //   })
 
-    blueDot.follow?.("position-only")
+  //   blueDot.follow?.("position-only")
 
-    return () => {
-      blueDot.disable()
-    }
-  }, [mapView])
+  //   return () => {
+  //     blueDot.disable()
+  //   }
+  // }, [mapView])
 
   useMapViewEvent(
     "click",
     async (event) => {
+      console.debug("event:", event)
+
+      const clickedMarker = event?.markers?.[0]
+      let poiName = ""
+      let poiCoord = null
+
+      if (clickedMarker) {
+        if (
+          clickedMarker.coordinate &&
+          clickedMarker.coordinate.latitude &&
+          clickedMarker.coordinate.longitude &&
+          clickedMarker.coordinate.floorId
+        ) {
+          poiCoord = clickedMarker.coordinate
+          poiName = clickedMarker.name || "(POI)"
+        } else {
+          const matchFromPois = pois.find(
+            (p) =>
+              p.id === clickedMarker.id ||
+              p.externalId === clickedMarker.id ||
+              p.name === clickedMarker.name
+          )
+
+          if (
+            matchFromPois &&
+            matchFromPois.coordinate &&
+            matchFromPois.coordinate.latitude &&
+            matchFromPois.coordinate.longitude &&
+            matchFromPois.coordinate.floorId
+          ) {
+            poiCoord = matchFromPois.coordinate
+            poiName = matchFromPois.name || "(POI)"
+          }
+        }
+      }
       const clickedSpace = event?.spaces?.[0]
-      console.debug("event: ", event)
-      if (!clickedSpace) return
+      let spaceName = ""
+      let spaceCoord = null
 
-      console.debug(
-        "clicked space full:",
-        JSON.stringify(clickedSpace, null, 2)
-      )
+      if (clickedSpace) {
+        spaceName = clickedSpace.name || "(Space)"
+        spaceCoord = clickedSpace.center
+      }
+      const targetCoord = poiCoord || spaceCoord
+      const targetName = poiCoord ? poiName : spaceName
 
-      const targetCoord = clickedSpace.center
       if (
         !targetCoord ||
         !targetCoord.latitude ||
         !targetCoord.longitude ||
         !targetCoord.floorId
       ) {
-        console.warn("No routable center coord for clicked space")
+        console.warn("No routable coord from click (POI or space).")
         return
       }
 
-      // first click == set start point
+      console.debug("resolved target:", targetName, targetCoord)
       if (!startCoordRef.current) {
         startCoordRef.current = targetCoord
-        console.debug("Start set at:", clickedSpace.name, startCoordRef.current)
+        console.debug("Start set at:", targetName, startCoordRef.current)
         return
       }
-
-      // second click == attempt route
-      console.debug("Routing to:", clickedSpace.name, targetCoord)
+      console.debug("Routing to:", targetName, targetCoord)
 
       try {
         let directions
@@ -123,10 +151,12 @@ const MapOverlay = () => {
             targetCoord
           )
         }
+
         if (!directions) {
           console.warn("No directions returned.")
           return
         }
+
         mapView.Navigation.draw(directions)
       } catch (err) {
         console.error("Error while getting directions:", err)
@@ -134,7 +164,7 @@ const MapOverlay = () => {
         startCoordRef.current = null
       }
     },
-    [mapView]
+    [mapView, pois]
   )
 
   // hover debug (desktop only)
@@ -174,6 +204,24 @@ const MapOverlay = () => {
             }}
           >
             {space.name}
+          </div>
+        </Marker>
+      ))}
+      {pois.map((poi) => (
+        <Marker key={poi.id} target={poi} options={{ interactive: true }}>
+          <div
+            style={{
+              borderRadius: "8px",
+              backgroundColor: "#000",
+              color: "#fff",
+              padding: "3px 5px",
+              fontFamily: "sans-serif",
+              fontSize: "10px",
+              lineHeight: 1.2,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {poi.name}
           </div>
         </Marker>
       ))}
