@@ -3,10 +3,8 @@ import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
 import { BlueDot } from "@mappedin/blue-dot"
 
 const MapOverlay = () => {
-  const { mapData, mapView } = useMap()
-
-  // store first click between renders
-  const startCoordRef = useRef(null)
+  const { mapData, mapView } = useMap(),
+    startCoordRef = useRef(null)
 
   const spaces = useMemo(() => {
     if (!mapData) return []
@@ -26,8 +24,8 @@ const MapOverlay = () => {
     if (mapView) {
       const initialFloorId = mapView.currentFloor?.id
       if (initialFloorId) {
-        const initialLatitude = 1.332779108782505,
-          initialLongitude = 103.73585230485095,
+        const initialLatitude = 1.3333282986523136,
+          initialLongitude = 103.736594744561,
           centerCoord = {
             latitude: initialLatitude,
             longitude: initialLongitude,
@@ -45,30 +43,39 @@ const MapOverlay = () => {
     })
 
     for (const poi of pois) {
-      // Label the point of interest if it's on the map floor currently shown.
       if (poi.floor.id === mapView.currentFloor.id) {
         mapView.Labels.add(poi.coordinate, poi.name)
       }
     }
   }, [mapData, mapView, spaces])
 
-  // enable BlueDot (optional, keep if it's stable for you)
-  // useEffect(() => {
-  //   if (!mapView) return
-  //   const blueDot = new BlueDot(mapView)
+  // BlueDot
+  useEffect(() => {
+    if (!mapView) return
 
-  //   blueDot.enable({
-  //     debug: true,
-  //     accuracyRing: { opacity: 0.2 },
-  //     heading: { color: "aqua", opacity: 1 },
-  //     inactiveColor: "wheat",
-  //     timeout: 20000,
-  //   })
+    const blueDot = new BlueDot(mapView)
 
-  //   return () => {
-  //     blueDot.disable()
-  //   }
-  // }, [mapView])
+    try {
+      blueDot.on?.("position-update", (update) => {
+        console.debug("[BlueDot] position-update:", update)
+      })
+      blueDot.on?.("state-change", (state) => {
+        console.debug("[BlueDot] state-change:", state)
+      })
+    } catch (err) {
+      console.warn("[BlueDot] attaching listeners failed:", err)
+    }
+
+    blueDot.enable({
+      debug: true,
+    })
+
+    blueDot.follow?.("position-only")
+
+    return () => {
+      blueDot.disable()
+    }
+  }, [mapView])
 
   useMapViewEvent(
     "click",
@@ -93,29 +100,24 @@ const MapOverlay = () => {
         return
       }
 
-      // first click -> set start point
+      // first click == set start point
       if (!startCoordRef.current) {
         startCoordRef.current = targetCoord
         console.debug("Start set at:", clickedSpace.name, startCoordRef.current)
         return
       }
 
-      // second click -> attempt route
+      // second click == attempt route
       console.debug("Routing to:", clickedSpace.name, targetCoord)
 
       try {
-        console.debug("try 0")
-        // Try modern object signature first here..
         let directions
         try {
-          console.debug("try 1")
           directions = await mapView.getDirections({
             from: startCoordRef.current,
             to: targetCoord,
           })
         } catch (e1) {
-          console.debug("catch 1")
-          // Fallback to 2-arg signature (older SDK builds)
           directions = await mapView.getDirections(
             startCoordRef.current,
             targetCoord
@@ -129,7 +131,6 @@ const MapOverlay = () => {
       } catch (err) {
         console.error("Error while getting directions:", err)
       } finally {
-        // reset so next tap begins a new route
         startCoordRef.current = null
       }
     },
