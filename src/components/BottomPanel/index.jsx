@@ -149,7 +149,7 @@ const BottomPanel = () => {
       messages.push({ role: "user", content: userMessage })
       const prefix = import.meta.env.VITE_API_PREFIX
 
-      const response = await fetch(`${prefix}/chat`, {
+      const response = await fetch(`${prefix}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
