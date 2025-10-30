@@ -170,7 +170,7 @@ const BottomPanel = () => {
         })
       )
 
-      speakResponse(aiResponse)
+      speakResponseWithElevenLabs(aiResponse)
     } catch (error) {
       console.error("Error calling LLM:", error)
 
@@ -183,14 +183,62 @@ const BottomPanel = () => {
           timestamp: Date.now(),
         })
       )
-      speakResponse(fallbackResponse)
+      speakResponseWithElevenLabs(fallbackResponse)
     } finally {
       dispatch(setIsProcessing(false))
     }
   }
 
-  // Text to speech
-  const speakResponse = (text) => {
+  // Text to speech with ElevenLabs
+  const speakResponseWithElevenLabs = async (text) => {
+    try {
+      const ELEVENLABS_API_KEY =
+        "81c412f72d891a703d429dfffca68f139fa678a58ea7a4f48bc522193006f8c1"
+      const VOICE_ID = "ljEOxtzNoGEa58anWyea"
+
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": ELEVENLABS_API_KEY,
+          },
+          body: JSON.stringify({
+            text: text,
+            model_id: "eleven_monolingual_v1",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.5,
+            },
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs API error: ${response.status}`)
+      }
+
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+
+      audio.play()
+
+      // Clean up the URL after playing
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl)
+      }
+    } catch (error) {
+      console.error("Error with ElevenLabs TTS:", error)
+      // Fallback to browser TTS if ElevenLabs fails
+      speakResponseFallback(text)
+    }
+  }
+
+  // Fallback text to speech using browser's built-in TTS
+  const speakResponseFallback = (text) => {
     window.speechSynthesis.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
