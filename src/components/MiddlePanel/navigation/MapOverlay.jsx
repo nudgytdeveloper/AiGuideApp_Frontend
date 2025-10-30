@@ -44,32 +44,32 @@ const MapOverlay = () => {
   }, [mapData, mapView, spaces])
 
   // BlueDot
-  // useEffect(() => {
-  //   if (!mapView) return
+  useEffect(() => {
+    if (!mapView) return
 
-  //   const blueDot = new BlueDot(mapView)
+    const blueDot = new BlueDot(mapView)
 
-  //   try {
-  //     blueDot.on?.("position-update", (update) => {
-  //       console.debug("[BlueDot] position-update:", update)
-  //     })
-  //     blueDot.on?.("state-change", (state) => {
-  //       console.debug("[BlueDot] state-change:", state)
-  //     })
-  //   } catch (err) {
-  //     console.warn("[BlueDot] attaching listeners failed:", err)
-  //   }
+    try {
+      blueDot.on?.("position-update", (update) => {
+        console.debug("[BlueDot] position-update:", update)
+      })
+      blueDot.on?.("state-change", (state) => {
+        console.debug("[BlueDot] state-change:", state)
+      })
+    } catch (err) {
+      console.warn("[BlueDot] attaching listeners failed:", err)
+    }
 
-  //   blueDot.enable({
-  //     debug: true,
-  //   })
+    blueDot.enable({
+      debug: true,
+    })
 
-  //   blueDot.follow?.("position-only")
+    blueDot.follow?.("position-only")
 
-  //   return () => {
-  //     blueDot.disable()
-  //   }
-  // }, [mapView])
+    return () => {
+      blueDot.disable()
+    }
+  }, [mapView])
 
   useMapViewEvent(
     "click",

@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mappedin/react-sdk": "6.1.2",
     "@mappedin/blue-dot": "6.0.1-beta.59",
-    "@mappedin/react-sdk": "^6.1.2",
     "@reduxjs/toolkit": "^2.2.3",
     "face-api.js": "^0.22.2",
     "immutable": "^4.3.4",
