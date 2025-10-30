@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
-import { BlueDot } from "@mappedin/blue-dot"
+// import { BlueDot } from "@mappedin/blue-dot"
 
 const MapOverlay = () => {
-  const { mapData, mapView } = useMap(),
-    startCoordRef = useRef(null)
-  const myBlueDot = useRef(null)
+  const { mapData, mapView } = useMap()
+  const startCoordRef = useRef(null)
 
   const spaces = useMemo(() => {
     if (!mapData) return []
@@ -17,109 +16,67 @@ const MapOverlay = () => {
     return mapData.getByType("point-of-interest") || []
   }, [mapData])
 
-  console.debug("pois: ", pois)
+  useEffect(() => {
+    if (!mapView) return
+
+    const initialFloorId = mapView.currentFloor?.id
+    if (initialFloorId) {
+      const initialLatitude = 1.3332786823115224
+      const initialLongitude = 103.73628759945123
+      const centerCoord = {
+        latitude: initialLatitude,
+        longitude: initialLongitude,
+        floorId: initialFloorId,
+      }
+      mapView.Camera.set({ center: centerCoord, zoomLevel: 20 })
+    }
+  }, [mapView])
 
   useEffect(() => {
-    if (!mapData || !mapView) return
-
-    if (mapView) {
-      const initialFloorId = mapView.currentFloor?.id
-      if (initialFloorId) {
-        const initialLatitude = 1.3332786823115224,
-          initialLongitude = 103.73628759945123,
-          centerCoord = {
-            latitude: initialLatitude,
-            longitude: initialLongitude,
-            floorId: initialFloorId,
-          }
-        mapView.Camera.set({ center: centerCoord, zoomLevel: 18 })
-      }
-    }
+    if (!mapView) return
 
     spaces.forEach((space) => {
       mapView.updateState(space, {
         interactive: true,
-        hoverColor: "#ff9900",
+        // hoverColor: "#ff9900",
       })
     })
-  }, [mapData, mapView, spaces])
 
-  // BlueDot
-  useEffect(() => {
-    if (!mapView) return
+    const youAreHereSpace =
+      spaces.find((s) => s?.name?.includes("into Science Centre")) || null
 
-    // 1) Shim BOTH roots with a small mpp to enlarge visuals (bigger pixels)
-    const enlargeMpp = () => 0.05 // ~5 cm / pixel -> large on screen
-    try {
-      if (typeof mapView.getMetersPerPixel !== "function") {
-        Object.defineProperty(mapView, "getMetersPerPixel", {
-          value: enlargeMpp,
-          configurable: true,
-        })
-      } else {
-        // overwrite anyway for demo sizing
-        mapView.getMetersPerPixel = enlargeMpp
-      }
-    } catch {}
+    const candidate =
+      youAreHereSpace?.center &&
+      youAreHereSpace.center.latitude &&
+      youAreHereSpace.center.longitude &&
+      youAreHereSpace.center.floorId
+        ? youAreHereSpace.center
+        : mapView.currentFloor?.id && {
+            latitude: 1.3332786823115224,
+            longitude: 103.73628759945123,
+            floorId: mapView.currentFloor.id,
+          }
 
-    try {
-      if (typeof mapView.Camera?.getMetersPerPixel !== "function") {
-        Object.defineProperty(mapView.Camera, "getMetersPerPixel", {
-          value: enlargeMpp,
-          configurable: true,
-        })
-      } else {
-        mapView.Camera.getMetersPerPixel = enlargeMpp
-      }
-    } catch {}
-
-    const blueDot = new BlueDot(mapView)
-
-    blueDot.on("position-update", (u) => console.log("[BlueDot] update:", u))
-    blueDot.on("state-change", (s) => console.log("[BlueDot] state:", s))
-
-    blueDot.enable({
-      debug: true,
-      preventOutOfBounds: false,
-      accuracyRing: { opacity: 0.5, color: "rgba(0,128,255,0.5)" },
-      heading: { opacity: 1 },
-      inactiveColor: "rgba(0,0,255,0.6)",
-    })
-
-    // 3) Ensure we’re on the same floor that the dot is on
-    const floorId = mapView.currentFloor?.id
-    if (floorId) {
-      try {
-        mapView.setFloor?.(floorId)
-      } catch {}
-      blueDot.update({
-        floorOrFloorId: floorId, // use string id
-        latitude: 1.3332786823115224,
-        longitude: 103.73628759945123,
-        accuracy: 4,
-      })
+    if (candidate) {
+      startCoordRef.current = candidate
+      console.debug("Fixed start set at:", candidate)
+    } else {
+      console.warn("Could not resolve a fixed start coordinate.")
     }
-
-    blueDot.follow("position-only")
-
-    // return () => blueDot.disable()
-  }, [mapView])
+  }, [mapView, spaces])
 
   useMapViewEvent(
     "click",
     async (event) => {
-      console.debug("event:", event)
-
       const clickedMarker = event?.markers?.[0]
       let poiName = ""
       let poiCoord = null
 
       if (clickedMarker) {
         if (
-          clickedMarker.coordinate &&
-          clickedMarker.coordinate.latitude &&
-          clickedMarker.coordinate.longitude &&
-          clickedMarker.coordinate.floorId
+          clickedMarker.coordinate?.latitude &&
+          clickedMarker.coordinate?.longitude &&
+          clickedMarker.coordinate?.floorId
         ) {
           poiCoord = clickedMarker.coordinate
           poiName = clickedMarker.name || "(POI)"
@@ -130,27 +87,21 @@ const MapOverlay = () => {
               p.externalId === clickedMarker.id ||
               p.name === clickedMarker.name
           )
-
           if (
-            matchFromPois &&
-            matchFromPois.coordinate &&
-            matchFromPois.coordinate.latitude &&
-            matchFromPois.coordinate.longitude &&
-            matchFromPois.coordinate.floorId
+            matchFromPois?.coordinate?.latitude &&
+            matchFromPois.coordinate?.longitude &&
+            matchFromPois.coordinate?.floorId
           ) {
             poiCoord = matchFromPois.coordinate
             poiName = matchFromPois.name || "(POI)"
           }
         }
       }
-      const clickedSpace = event?.spaces?.[0]
-      let spaceName = ""
-      let spaceCoord = null
 
-      if (clickedSpace) {
-        spaceName = clickedSpace.name || "(Space)"
-        spaceCoord = clickedSpace.center
-      }
+      const clickedSpace = event?.spaces?.[0]
+      const spaceName = clickedSpace?.name || "(Space)"
+      const spaceCoord = clickedSpace?.center || null
+
       const targetCoord = poiCoord || spaceCoord
       const targetName = poiCoord ? poiName : spaceName
 
@@ -164,13 +115,22 @@ const MapOverlay = () => {
         return
       }
 
-      console.debug("resolved target:", targetName, targetCoord)
-      if (!startCoordRef.current) {
-        startCoordRef.current = targetCoord
-        console.debug("Start set at:", targetName, startCoordRef.current)
+      if (
+        startCoordRef.current &&
+        targetCoord.latitude === startCoordRef.current.latitude &&
+        targetCoord.longitude === startCoordRef.current.longitude &&
+        targetCoord.floorId === startCoordRef.current.floorId
+      ) {
+        console.debug("Clicked start itself; ignoring.")
         return
       }
-      console.debug("Routing to:", targetName, targetCoord)
+
+      if (!startCoordRef.current) {
+        console.warn("Start coordinate not ready yet.")
+        return
+      }
+
+      console.debug("Routing from fixed start to:", targetName, targetCoord)
 
       try {
         let directions
@@ -179,7 +139,7 @@ const MapOverlay = () => {
             from: startCoordRef.current,
             to: targetCoord,
           })
-        } catch (e1) {
+        } catch {
           directions = await mapView.getDirections(
             startCoordRef.current,
             targetCoord
@@ -191,17 +151,15 @@ const MapOverlay = () => {
           return
         }
 
+        mapView.Navigation.clear?.()
         mapView.Navigation.draw(directions)
       } catch (err) {
         console.error("Error while getting directions:", err)
-      } finally {
-        startCoordRef.current = null
       }
     },
     [mapView, pois]
   )
 
-  // hover debug (desktop only)
   useMapViewEvent(
     "hover",
     (event) => {
@@ -219,7 +177,7 @@ const MapOverlay = () => {
 
   return (
     <>
-      {/* {spaces.map((space) => (
+      {spaces.map((space) => (
         <Marker
           key={space.id || space.externalId}
           target={space}
@@ -228,19 +186,27 @@ const MapOverlay = () => {
           <div
             style={{
               borderRadius: "10px",
-              backgroundColor: "#fff",
+              backgroundColor: space.name?.includes("into Science Centre")
+                ? "#4a89f3"
+                : "#fff",
               padding: "5px",
               boxShadow: "0px 0px 1px rgba(0, 0, 0, 0.25)",
+              color: space.name?.includes("into Science Centre")
+                ? "#fff"
+                : "#000",
               fontFamily: "sans-serif",
               fontSize: "11px",
               lineHeight: 1.2,
               whiteSpace: "nowrap",
             }}
           >
-            {space.name}
+            {space.name?.includes("into Science Centre")
+              ? "You are here"
+              : space.name}
           </div>
         </Marker>
-      ))} */}
+      ))}
+
       {pois.map((poi) => (
         <Marker key={poi.id} target={poi} options={{ interactive: true }}>
           <div
