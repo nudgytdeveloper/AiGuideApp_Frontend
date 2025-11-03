@@ -426,6 +426,18 @@
   align-items: center;
 }
 
+.live-scan-containers {
+  position: relative;
+}
+.live-scan-containers video,
+.live-scan-containers canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* important: no stretching */
+}
+
 .live-scan-iframe {
   width: 100%;
   height: 100%;
@@ -439,4 +451,19 @@
   .live-scan-container {
     border-radius: 0;
   }
+}
+/* Exhibit Detector css... */
+video {
+  width: 100%;
+  height: auto;
+  object-fit: cover; /* or 'contain' if you prefer letterboxing */
+  transform: translateZ(0); /* nudge GPU acceleration */
+}
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
 }
