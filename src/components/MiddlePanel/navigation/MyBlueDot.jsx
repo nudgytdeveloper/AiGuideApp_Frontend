@@ -20,8 +20,23 @@ const MyBlueDot = () => {
       console.debug("BlueDot state-change:", state)
     })
 
+    // blueDot.enable({
+    //   debug: true,
+    // })
+
     blueDot.enable({
+      color: "tomato",
       debug: true,
+      accuracyRing: {
+        color: "forestgreen",
+        opacity: 0.1,
+      },
+      heading: {
+        color: "aqua",
+        opacity: 1,
+      },
+      inactiveColor: "wheat",
+      timeout: 30000,
     })
 
     blueDot.follow("position-only")
