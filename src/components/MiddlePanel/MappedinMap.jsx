@@ -1,6 +1,7 @@
 import React from "react"
 import { MapView, useMapData } from "@mappedin/react-sdk"
 import MapOverlay from "@nrs/components/MiddlePanel/navigation/MapOverlay"
+import MyBlueDot from "@nrs/components/MiddlePanel/navigation/MyBlueDot"
 
 const MappedinMap = () => {
   const { isLoading, error, mapData } = useMapData({
@@ -25,6 +26,7 @@ const MappedinMap = () => {
           width: "100%",
         }}
       >
+        <MyBlueDot />
         <MapOverlay />
       </MapView>
     </div>

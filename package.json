@@ -20,9 +20,9 @@
     "three": "^0.180.0",
     "lodash": "^4.17.21",
     "loader-utils": "3.2.1",
-    "@mappedin/react-sdk": "^6.x.x",
-    "@mappedin/mappedin-js": "^6.x.x",
-    "@mappedin/blue-dot": "latest"
+    "@mappedin/react-sdk": "^6.2.0",
+    "@mappedin/mappedin-js": "^6.2.0",
+    "@mappedin/blue-dot": "6.0.1-beta.60"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
