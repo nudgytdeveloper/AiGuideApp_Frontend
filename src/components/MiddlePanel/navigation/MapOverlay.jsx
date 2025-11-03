@@ -27,6 +27,7 @@ const MapOverlay = () => {
     const youAreHereSpace =
       spaces.find((s) => s?.name?.includes("into Science Centre")) || null
 
+    // console.debug("you are here space: ", youAreHereSpace.center)
     const candidate =
       youAreHereSpace?.center &&
       youAreHereSpace.center.latitude &&
