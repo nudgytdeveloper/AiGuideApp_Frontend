@@ -2,6 +2,7 @@ import React from "react"
 import { MapView, useMapData } from "@mappedin/react-sdk"
 import MapOverlay from "@nrs/components/MiddlePanel/navigation/MapOverlay"
 import MyBlueDot from "@nrs/components/MiddlePanel/navigation/MyBlueDot"
+import FloorSwitcher from "@nrs/components/MiddlePanel/navigation/FloorSwitcher"
 
 const MappedinMap = () => {
   const { isLoading, error, mapData } = useMapData({
@@ -27,6 +28,7 @@ const MappedinMap = () => {
         }}
       >
         <MyBlueDot />
+        <FloorSwitcher />
         <MapOverlay />
       </MapView>
     </div>

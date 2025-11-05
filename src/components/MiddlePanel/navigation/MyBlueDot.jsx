@@ -25,21 +25,15 @@ const MyBlueDot = () => {
     // })
 
     blueDot.enable({
-      color: "tomato",
       debug: true,
-      accuracyRing: {
-        color: "forestgreen",
-        opacity: 0.1,
-      },
-      heading: {
-        color: "aqua",
-        opacity: 1,
-      },
-      inactiveColor: "wheat",
+      //   accuracyRing: {
+      //     color: "forestgreen",
+      //     opacity: 0.1,
+      //   },
       timeout: 30000,
     })
 
-    blueDot.follow("position-only")
+    // blueDot.follow("position-only")
     // blueDot.update({
     //   accuracy: 10,
     //   floorOrFloorId: mapView.currentFloor,
