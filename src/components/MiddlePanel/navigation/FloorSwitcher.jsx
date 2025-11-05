@@ -18,10 +18,10 @@ const FloorSwitcher = () => {
     return () => mapView.off("floor-change", handleFloorChange)
   }, [mapView])
 
-  if (!mapData) return null
+  if (!mapData || !mapView) return null
 
-  const floors = mapData.getByType("floor")
-  console.debug("floors...: ", floors)
+  const floors = mapData.getByType("floor"),
+    currentFloor = mapView.currentFloor?.id
 
   return (
     <div className="floor-switcher">
@@ -29,7 +29,9 @@ const FloorSwitcher = () => {
         <button
           key={floor.id}
           onClick={() => switchFloor(floor)}
-          className={`floor-btn ${activeFloor === floor.id ? "active" : ""}`}
+          className={`floor-btn ${
+            activeFloor === floor.id || currentFloor == floor.id ? "active" : ""
+          }`}
         >
           {floor.name}
         </button>
