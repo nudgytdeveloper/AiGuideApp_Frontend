@@ -127,7 +127,8 @@ const ExhibitDetector = ({
   const containerStyle = {
     position: "relative",
     width: "100%",
-    aspectRatio: "3 / 4", // adjust to your UI; container drives canvas size
+    // aspectRatio: "3 / 4", // adjust to your UI; container drives canvas size
+    height: "100%",
     background: "#000",
     overflow: "hidden",
     borderRadius: "12px",

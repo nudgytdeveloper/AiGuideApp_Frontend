@@ -428,6 +428,11 @@
 
 .live-scan-containers {
   position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #000;
 }
 .live-scan-containers video,
 .live-scan-containers canvas {
