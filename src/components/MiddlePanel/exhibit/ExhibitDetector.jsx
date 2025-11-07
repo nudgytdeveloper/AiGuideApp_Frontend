@@ -179,9 +179,7 @@ const ExhibitDetector = ({
       activeRef.current = true
 
       try {
-        const isiOS =
-          navigator.platform.indexOf("iPhone") >= 0 ||
-          navigator.platform.indexOf("iPad") >= 0
+        const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent)
         if (isiOS) {
           console.debug("STARTED WASM")
           await tf.setBackend("wasm")
