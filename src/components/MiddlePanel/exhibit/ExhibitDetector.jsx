@@ -7,11 +7,11 @@ import * as cvstfjs from "@microsoft/customvision-tfjs"
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.25,
+  threshold = 0.05,
   persistMs = 600,
   maxDetections = 20,
-  debug = true,
   inputSize = 320,
+  debug = true,
 }) => {
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -22,6 +22,7 @@ const ExhibitDetector = ({
   const activeRef = useRef(true)
 
   const modelRef = useRef(null)
+  const [labels, setLabels] = useState([])
   const lastRef = useRef({ ts: 0, preds: [] })
 
   const [hud, setHud] = useState({
@@ -30,15 +31,17 @@ const ExhibitDetector = ({
     preds: 0,
     error: "",
   })
-  const [labels, setLabels] = useState([])
+
+  // offscreen canvas used as model input
+  const scratchRef = useRef(null)
 
   const syncOverlayToContainer = (canvas) => {
     const rect = (canvas.parentElement || canvas).getBoundingClientRect()
     const cwCss = Math.max(1, Math.round(rect.width))
     const chCss = Math.max(1, Math.round(rect.height))
     const dpr = Math.max(1, window.devicePixelRatio || 1)
-    canvas.style.width = `${cwCss}px`
-    canvas.style.height = `${chCss}px`
+    if (canvas.style.width !== `${cwCss}px`) canvas.style.width = `${cwCss}px`
+    if (canvas.style.height !== `${chCss}px`) canvas.style.height = `${chCss}px`
     const cwBmp = Math.max(1, Math.round(cwCss * dpr))
     const chBmp = Math.max(1, Math.round(chCss * dpr))
     if (canvas.width !== cwBmp) canvas.width = cwBmp
@@ -72,6 +75,7 @@ const ExhibitDetector = ({
     ctx.lineWidth = 2.5
     ctx.strokeStyle = "rgba(0,0,0,0.9)"
     ctx.strokeRect(X + 1.5, Y + 1.5, W - 3, H - 3)
+
     if (tag) {
       ctx.save()
       ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial"
@@ -87,7 +91,9 @@ const ExhibitDetector = ({
     }
   }
 
-  // Normalize model outputs into: [{probability, tagName, boundingBox:{left,top,width,height}}]
+  // Normalize predictions:
+  // 1) CV objects [{ probability, tagName, boundingBox:{left,top,width,height} }]
+  // 2) Raw triple [boxes, scores, classes]
   const normalizePredictions = (raw, labelMap) => {
     if (Array.isArray(raw) && raw.length && raw[0]?.boundingBox) {
       return raw.filter((p) => Number(p.probability || 0) >= threshold)
@@ -135,7 +141,6 @@ const ExhibitDetector = ({
     return []
   }
 
-  // Load labels.txt (optional)
   useEffect(() => {
     let ignore = false
     const go = async () => {
@@ -160,41 +165,74 @@ const ExhibitDetector = ({
   useEffect(() => {
     let objectModel
 
+    const resolveUrl = (u) => {
+      if (/^https?:\/\//i.test(u)) return u
+      const base =
+        (import.meta && import.meta.env && import.meta.env.BASE_URL) || "/"
+      return base.replace(/\/+$/, "") + "/" + u.replace(/^\/+/, "")
+    }
+
     const start = async () => {
       if (startedRef.current) return
       startedRef.current = true
       activeRef.current = true
 
-      // Try webgl → cpu
-      let chosen = ""
       try {
         await tf.setBackend("webgl")
         await tf.ready()
-        chosen = tf.getBackend()
-      } catch {
+      } catch (e) {
+        console.warn("WebGL init failed, falling back to CPU:", e)
         await tf.setBackend("cpu")
         await tf.ready()
-        chosen = tf.getBackend()
       }
-      setHud((h) => ({ ...h, backend: chosen }))
+      setHud((h) => ({ ...h, backend: tf.getBackend() }))
+
+      // Preflight model URLs
+      const resolvedModelUrl = resolveUrl(modelUrl)
+      try {
+        const probe = await fetch(resolvedModelUrl, { cache: "no-store" })
+        if (!probe.ok) {
+          setHud((h) => ({
+            ...h,
+            model: "failed",
+            error: `model.json HTTP ${probe.status}`,
+          }))
+          return
+        }
+        const dir = resolvedModelUrl.substring(
+          0,
+          resolvedModelUrl.lastIndexOf("/") + 1
+        )
+        const wprobe = await fetch(dir + "weights.bin", { cache: "no-store" })
+        if (!wprobe.ok) {
+          setHud((h) => ({
+            ...h,
+            model: "failed",
+            error: `weights.bin HTTP ${wprobe.status}`,
+          }))
+          return
+        }
+      } catch (e) {
+        setHud((h) => ({ ...h, model: "failed", error: String(e) }))
+        return
+      }
 
       // Load model
       try {
         objectModel = new cvstfjs.ObjectDetectionModel()
-        await objectModel.loadModelAsync(modelUrl)
+        await objectModel.loadModelAsync(resolvedModelUrl)
         modelRef.current = objectModel
-        setHud((h) => ({ ...h, model: "loaded" }))
+        setHud((h) => ({ ...h, model: "loaded", error: "" }))
       } catch (e) {
         setHud((h) => ({
           ...h,
           model: "failed",
-          error: "Model load failed (check URL/CORS)",
+          error: `loadModelAsync: ${String(e)}`,
         }))
-        console.error("Model load error:", e)
         return
       }
 
-      // Wait for webcam
+      // Wait video
       const video = webcamRef.current?.video
       if (!video) return
       await new Promise((resolve) => {
@@ -204,6 +242,14 @@ const ExhibitDetector = ({
         else video.onloadedmetadata = () => resolve()
         setTimeout(resolve, 2000)
       })
+
+      //  ensure scratch canvas exists & sized..
+      if (!scratchRef.current)
+        scratchRef.current = document.createElement("canvas")
+      const sc = scratchRef.current
+      sc.width = inputSize
+      sc.height = inputSize
+      const sctx = sc.getContext("2d", { willReadFrequently: false })
 
       const tick = async () => {
         if (!activeRef.current) return
@@ -216,53 +262,17 @@ const ExhibitDetector = ({
 
         const lb = computeLetterbox(v, cwCss, chCss)
 
+        // draw webcam → offscreen square
+        sctx.drawImage(v, 0, 0, inputSize, inputSize)
+
+        // inference on canvas element (preferred by CV TFJS)
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
-            // const raw = await modelRef.current.executeAsync(v)
-            // const input = tf.tidy(() =>
-            //   tf.image
-            //     .resizeBilinear(tf.browser.fromPixels(v), [320, 320])
-            //     .expandDims(0)
-            // )
-            // const raw = await modelRef.current.executeAsync(input)
-            // tf.dispose(input)
-            // const mapped = normalizePredictions(raw, labels)
-            let raw
-            try {
-              const input = tf.tidy(() => {
-                const t = tf.browser.fromPixels(v) // HxWx3 uint8
-                const r = tf.image.resizeBilinear(
-                  t,
-                  [inputSize, inputSize],
-                  true
-                )
-                const f = r.toFloat().div(255) // normalize
-                return f.expandDims(0) // 1xHxWx3
-              })
-              raw = await modelRef.current.executeAsync(input)
-              tf.dispose(input)
-            } catch (e) {
-              // fallback: try the video element directly once
-              console.warn(
-                "executeAsync with tensor failed, trying video element:",
-                e
-              )
-              raw = await modelRef.current.executeAsync(v)
-            }
-
-            // map/threshold
+            let raw = await modelRef.current.executeAsync(sc)
             const mapped = normalizePredictions(raw, labels)
-
-            // TEMP DEBUG: lower threshold once if still empty
-            if (!mapped.length && threshold > 0.01) {
-              const mappedLoose = normalizePredictions(raw, labels)
-              lastRef.current = { ts: performance.now(), preds: mappedLoose }
-            } else {
-              lastRef.current = { ts: performance.now(), preds: mapped }
-            }
-
-            // optional logging to confirm shapes in prod
+            lastRef.current = { ts: performance.now(), preds: mapped }
+            setHud((h) => ({ ...h, preds: mapped.length }))
             if (debug) {
               const vw = v.videoWidth || 0,
                 vh = v.videoHeight || 0
@@ -270,28 +280,29 @@ const ExhibitDetector = ({
                 "[prod-debug] video:",
                 vw,
                 vh,
-                "mapped preds:",
-                lastRef.current.preds.length,
-                "raw:",
+                "mapped:",
+                mapped.length,
                 raw
               )
             }
-            lastRef.current = { ts: performance.now(), preds: mapped }
-            setHud((h) => ({ ...h, preds: mapped.length }))
           } catch (e) {
-            // If WebGL flakes on some devices, swap to WASM once
-            if (tf.getBackend() !== "webgl") {
-              try {
-                await tf.setBackend("cpu")
-                await tf.ready()
-                setHud((h) => ({ ...h, backend: "cpu" }))
-              } catch {}
-            }
+            setHud((h) => ({
+              ...h,
+              error: h.error || `executeAsync(canvas): ${String(e)}`,
+            }))
+            // as a minimal fallback try the video element once
+            try {
+              let raw2 = await modelRef.current.executeAsync(v)
+              const mapped2 = normalizePredictions(raw2, labels)
+              lastRef.current = { ts: performance.now(), preds: mapped2 }
+              setHud((h) => ({ ...h, preds: mapped2.length }))
+            } catch {}
           } finally {
             inflightRef.current = false
           }
         }
 
+        // draw persisted predictions
         const age = performance.now() - lastRef.current.ts
         const preds = age <= persistMs ? lastRef.current.preds : []
         let drawn = 0
@@ -317,16 +328,22 @@ const ExhibitDetector = ({
           drawn++
         }
 
+        // HUD
         if (debug) {
           ctx.save()
-          ctx.fillStyle = "rgba(0,0,0,0.6)"
-          ctx.fillRect(8, 8, 220, 56)
+          ctx.fillStyle = "rgba(0,0,0,0.85)"
+          ctx.fillRect(10, 10, 260, hud.error ? 90 : 70)
           ctx.fillStyle = "white"
           ctx.font =
-            "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-          ctx.fillText(`backend: ${hud.backend}`, 14, 24)
-          ctx.fillText(`model:   ${hud.model}`, 14, 38)
-          ctx.fillText(`preds:   ${hud.preds}`, 14, 52)
+            "14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+          ctx.fillText(`backend: ${hud.backend}`, 18, 30)
+          ctx.fillText(`model:   ${hud.model}`, 18, 50)
+          ctx.fillText(`preds:   ${hud.preds}`, 18, 70)
+          if (hud.error) {
+            const msg =
+              hud.error.length > 42 ? hud.error.slice(0, 42) + "…" : hud.error
+            ctx.fillText(`err: ${msg}`, 18, 90)
+          }
           ctx.restore()
         }
 
@@ -337,7 +354,7 @@ const ExhibitDetector = ({
     }
 
     start().catch((e) => {
-      setHud((h) => ({ ...h, error: String(e) }))
+      setHud((h) => ({ ...h, model: "failed", error: String(e) }))
       console.error(e)
     })
 
@@ -351,10 +368,11 @@ const ExhibitDetector = ({
     }
   }, [
     modelUrl,
+    labels,
     threshold,
     persistMs,
     maxDetections,
-    labels,
+    inputSize,
     debug,
     hud.backend,
     hud.model,
