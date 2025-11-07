@@ -10,10 +10,6 @@ import { verifySession } from "@nrs/slices/sessionSlice"
 import PopupDialog from "@nrs/components/Common/Popup/PopupDialog"
 import { useSelector } from "react-redux"
 import { ArrayEqual } from "@nrs/utils/common"
-import { tfReady } from "@nrs/utils/tf-init" // runs immediately
-
-// If you need to be 100% sure:
-await tfReady
 
 // Main App component
 export default function App() {
