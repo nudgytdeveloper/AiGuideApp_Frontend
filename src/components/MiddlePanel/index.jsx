@@ -34,9 +34,7 @@ const MiddlePanel = () => {
         <LiveScan />
       )}
       {selectedPageType == AIChat ? (
-        <div className="video-preview">
-          <LiveFeed />
-        </div>
+        <div className="video-preview">{/* <LiveFeed /> */}</div>
       ) : null}
       <div className="action-buttons">
         <button
