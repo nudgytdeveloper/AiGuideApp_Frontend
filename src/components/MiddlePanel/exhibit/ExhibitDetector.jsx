@@ -34,6 +34,7 @@ const ExhibitDetector = ({
 
   // offscreen canvas used as model input
   const scratchRef = useRef(null)
+  const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent)
 
   const syncOverlayToContainer = (canvas) => {
     const rect = (canvas.parentElement || canvas).getBoundingClientRect()
@@ -268,7 +269,10 @@ const ExhibitDetector = ({
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
-            let raw = await modelRef.current.executeAsync(sc)
+            const data = isiOS
+              ? sctx.getImageData(0, 0, inputSize, inputSize)
+              : sc
+            let raw = await modelRef.current.executeAsync(data)
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
