@@ -167,8 +167,7 @@ const ExhibitDetector = ({
 
     const resolveUrl = (u) => {
       if (/^https?:\/\//i.test(u)) return u
-      const base =
-        (import.meta && import.meta.env && import.meta.env.BASE_URL) || "/"
+      const base = "/"
       return base.replace(/\/+$/, "") + "/" + u.replace(/^\/+/, "")
     }
 
