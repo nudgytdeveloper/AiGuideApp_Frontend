@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react"
 import Webcam from "react-webcam"
 import * as tf from "@tensorflow/tfjs"
 import "@tensorflow/tfjs-backend-webgl"
+import "@tensorflow/tfjs-backend-wasm"
 import * as cvstfjs from "@microsoft/customvision-tfjs"
 
 const ExhibitDetector = ({
@@ -178,8 +179,18 @@ const ExhibitDetector = ({
       activeRef.current = true
 
       try {
-        await tf.setBackend("webgl")
-        await tf.ready()
+        const isiOS =
+          navigator.platform.indexOf("iPhone") >= 0 ||
+          navigator.platform.indexOf("iPad") >= 0
+        if (isiOS) {
+          console.debug("STARTED WASM")
+          await tf.setBackend("wasm")
+          await tf.ready()
+        } else {
+          console.debug("STARTED WEBGL")
+          await tf.setBackend("webgl")
+          await tf.ready()
+        }
       } catch (e) {
         console.warn("WebGL init failed, falling back to CPU:", e)
         await tf.setBackend("cpu")
