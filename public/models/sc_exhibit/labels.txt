@@ -9,3 +9,5 @@ EAP-16 Swirling Storm
 EAP-18 Atmosphere Hydrosphere
 EAP-19 Building for Quakes
 EAP-20 Un-solid Ground
+TestExhibit-01
+TestExhibit-02
