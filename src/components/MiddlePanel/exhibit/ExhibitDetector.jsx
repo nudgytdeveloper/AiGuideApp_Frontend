@@ -178,22 +178,6 @@ const ExhibitDetector = ({
       startedRef.current = true
       activeRef.current = true
 
-      try {
-        const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent)
-        if (isiOS) {
-          console.debug("STARTED WASM")
-          await tf.setBackend("wasm")
-          await tf.ready()
-        } else {
-          console.debug("STARTED WEBGL")
-          await tf.setBackend("webgl")
-          await tf.ready()
-        }
-      } catch (e) {
-        console.warn("WebGL init failed, falling back to CPU:", e)
-        await tf.setBackend("cpu")
-        await tf.ready()
-      }
       setHud((h) => ({ ...h, backend: tf.getBackend() }))
 
       // Preflight model URLs
