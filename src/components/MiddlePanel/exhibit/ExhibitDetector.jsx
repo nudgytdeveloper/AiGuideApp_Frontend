@@ -8,9 +8,10 @@ const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
   threshold = 0.25,
-  persistMs = 1200,
+  persistMs = 600,
   maxDetections = 20,
   debug = true,
+  inputSize = 320,
 }) => {
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -219,14 +220,62 @@ const ExhibitDetector = ({
           inflightRef.current = true
           try {
             // const raw = await modelRef.current.executeAsync(v)
-            const input = tf.tidy(() =>
-              tf.image
-                .resizeBilinear(tf.browser.fromPixels(v), [320, 320])
-                .expandDims(0)
-            )
-            const raw = await modelRef.current.executeAsync(input)
-            tf.dispose(input)
+            // const input = tf.tidy(() =>
+            //   tf.image
+            //     .resizeBilinear(tf.browser.fromPixels(v), [320, 320])
+            //     .expandDims(0)
+            // )
+            // const raw = await modelRef.current.executeAsync(input)
+            // tf.dispose(input)
+            // const mapped = normalizePredictions(raw, labels)
+            let raw
+            try {
+              const input = tf.tidy(() => {
+                const t = tf.browser.fromPixels(v) // HxWx3 uint8
+                const r = tf.image.resizeBilinear(
+                  t,
+                  [inputSize, inputSize],
+                  true
+                )
+                const f = r.toFloat().div(255) // normalize
+                return f.expandDims(0) // 1xHxWx3
+              })
+              raw = await modelRef.current.executeAsync(input)
+              tf.dispose(input)
+            } catch (e) {
+              // fallback: try the video element directly once
+              console.warn(
+                "executeAsync with tensor failed, trying video element:",
+                e
+              )
+              raw = await modelRef.current.executeAsync(v)
+            }
+
+            // map/threshold
             const mapped = normalizePredictions(raw, labels)
+
+            // TEMP DEBUG: lower threshold once if still empty
+            if (!mapped.length && threshold > 0.01) {
+              const mappedLoose = normalizePredictions(raw, labels)
+              lastRef.current = { ts: performance.now(), preds: mappedLoose }
+            } else {
+              lastRef.current = { ts: performance.now(), preds: mapped }
+            }
+
+            // optional logging to confirm shapes in prod
+            if (debug) {
+              const vw = v.videoWidth || 0,
+                vh = v.videoHeight || 0
+              console.log(
+                "[prod-debug] video:",
+                vw,
+                vh,
+                "mapped preds:",
+                lastRef.current.preds.length,
+                "raw:",
+                raw
+              )
+            }
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
           } catch (e) {
