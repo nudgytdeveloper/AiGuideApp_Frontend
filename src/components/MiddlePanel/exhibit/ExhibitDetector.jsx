@@ -269,10 +269,8 @@ const ExhibitDetector = ({
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
-            const data = isiOS
-              ? sctx.getImageData(0, 0, inputSize, inputSize)
-              : sc
-            let raw = await modelRef.current.executeAsync(data)
+            const img = sctx.getImageData(0, 0, inputSize, inputSize)
+            let raw = await modelRef.current.executeAsync(img)
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
