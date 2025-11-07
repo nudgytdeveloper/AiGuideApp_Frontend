@@ -1,19 +1,16 @@
 import React, { useEffect, useRef, useState } from "react"
 import Webcam from "react-webcam"
 import * as tf from "@tensorflow/tfjs"
-// Explicitly include backends so they’re bundled in prod:
 import "@tensorflow/tfjs-backend-webgl"
-import "@tensorflow/tfjs-backend-wasm"
-import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm"
 import * as cvstfjs from "@microsoft/customvision-tfjs"
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
-  labelsUrl = "/models/sc_exhibit/labels.txt", // optional
+  labelsUrl = "/models/sc_exhibit/labels.txt",
   threshold = 0.25,
   persistMs = 600,
   maxDetections = 20,
-  debug = false,
+  debug = true,
 }) => {
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -167,29 +164,16 @@ const ExhibitDetector = ({
       startedRef.current = true
       activeRef.current = true
 
-      try {
-        // Always set WASM paths *before* choosing wasm, so prod can load .wasm files.
-        setWasmPaths(
-          "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/"
-        )
-      } catch {}
-
-      // Try webgl → wasm → cpu
+      // Try webgl → cpu
       let chosen = ""
       try {
         await tf.setBackend("webgl")
         await tf.ready()
         chosen = tf.getBackend()
       } catch {
-        try {
-          await tf.setBackend("wasm")
-          await tf.ready()
-          chosen = tf.getBackend()
-        } catch {
-          await tf.setBackend("cpu")
-          await tf.ready()
-          chosen = tf.getBackend()
-        }
+        await tf.setBackend("cpu")
+        await tf.ready()
+        chosen = tf.getBackend()
       }
       setHud((h) => ({ ...h, backend: chosen }))
 
@@ -240,11 +224,11 @@ const ExhibitDetector = ({
             setHud((h) => ({ ...h, preds: mapped.length }))
           } catch (e) {
             // If WebGL flakes on some devices, swap to WASM once
-            if (tf.getBackend() !== "wasm") {
+            if (tf.getBackend() !== "webgl") {
               try {
-                await tf.setBackend("wasm")
+                await tf.setBackend("cpu")
                 await tf.ready()
-                setHud((h) => ({ ...h, backend: "wasm" }))
+                setHud((h) => ({ ...h, backend: "cpu" }))
               } catch {}
             }
           } finally {
