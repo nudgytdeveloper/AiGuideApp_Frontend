@@ -6,7 +6,7 @@ import * as cvstfjs from "@microsoft/customvision-tfjs"
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.3,
+  threshold = 0.1,
   backend = "webgl",
   persistMs = 1200,
   maxDetections = 20,
