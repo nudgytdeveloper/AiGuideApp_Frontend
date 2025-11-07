@@ -6,7 +6,7 @@ import * as cvstfjs from "@microsoft/customvision-tfjs"
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.5,
+  threshold = 0.3,
   backend = "webgl",
   persistMs = 1200,
   maxDetections = 20,
@@ -15,20 +15,17 @@ const ExhibitDetector = ({
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
 
-  // control single render loop + concurrent calls
   const startedRef = useRef(false)
   const rafRef = useRef(null)
   const inflightRef = useRef(false)
   const activeRef = useRef(true)
 
-  // model + labels
   const modelRef = useRef(null)
   const [labels, setLabels] = useState([])
 
-  // keep last results to avoid flicker
+  // to resolve one of the wreird flicker bug
   const lastRef = useRef({ ts: 0, preds: [] })
 
-  // ---------- helpers ----------
   const syncOverlayToContainer = (canvas) => {
     const container = canvas.parentElement || canvas
     const rect = container.getBoundingClientRect()
@@ -88,10 +85,9 @@ const ExhibitDetector = ({
       ctx.restore()
     }
   }
-
   // Attempt to parse model outputs into a unified array of {prob, label, box:{l,t,w,h} (0..1)}
   const normalizePredictions = (raw, labelMap) => {
-    // 1) “Nice” Custom Vision format?
+    // 1) standardize Custom Vision format..
     if (Array.isArray(raw) && raw.length && raw[0] && raw[0].boundingBox) {
       return raw
         .map((p) => ({
@@ -164,7 +160,7 @@ const ExhibitDetector = ({
       return out
     }
 
-    // Unknown format
+    // Unknown format then juz retrun empty
     return []
   }
 
@@ -191,7 +187,6 @@ const ExhibitDetector = ({
     }
   }, [labelsUrl])
 
-  // main effect
   useEffect(() => {
     let objectModel
 
@@ -200,7 +195,6 @@ const ExhibitDetector = ({
       startedRef.current = true
       activeRef.current = true
 
-      // Backend
       try {
         await tf.setBackend(backend)
         await tf.ready()
