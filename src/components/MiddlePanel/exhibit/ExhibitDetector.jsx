@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from "react"
 import Webcam from "react-webcam"
 import * as tf from "@tensorflow/tfjs"
+// Explicitly include backends so they’re bundled in prod:
+import "@tensorflow/tfjs-backend-webgl"
+import "@tensorflow/tfjs-backend-wasm"
+import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm"
 import * as cvstfjs from "@microsoft/customvision-tfjs"
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
-  labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.1,
-  backend = "webgl",
-  persistMs = 1200,
+  labelsUrl = "/models/sc_exhibit/labels.txt", // optional
+  threshold = 0.25,
+  persistMs = 600,
   maxDetections = 20,
-  debug = true,
+  debug = false,
 }) => {
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -21,26 +24,27 @@ const ExhibitDetector = ({
   const activeRef = useRef(true)
 
   const modelRef = useRef(null)
-  const [labels, setLabels] = useState([])
-
-  // to resolve one of the wreird flicker bug
   const lastRef = useRef({ ts: 0, preds: [] })
 
+  const [hud, setHud] = useState({
+    backend: "boot",
+    model: "loading",
+    preds: 0,
+    error: "",
+  })
+  const [labels, setLabels] = useState([])
+
   const syncOverlayToContainer = (canvas) => {
-    const container = canvas.parentElement || canvas
-    const rect = container.getBoundingClientRect()
+    const rect = (canvas.parentElement || canvas).getBoundingClientRect()
     const cwCss = Math.max(1, Math.round(rect.width))
     const chCss = Math.max(1, Math.round(rect.height))
     const dpr = Math.max(1, window.devicePixelRatio || 1)
-
-    if (canvas.style.width !== `${cwCss}px`) canvas.style.width = `${cwCss}px`
-    if (canvas.style.height !== `${chCss}px`) canvas.style.height = `${chCss}px`
-
+    canvas.style.width = `${cwCss}px`
+    canvas.style.height = `${chCss}px`
     const cwBmp = Math.max(1, Math.round(cwCss * dpr))
     const chBmp = Math.max(1, Math.round(chCss * dpr))
     if (canvas.width !== cwBmp) canvas.width = cwBmp
     if (canvas.height !== chBmp) canvas.height = chBmp
-
     const ctx = canvas.getContext("2d")
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     return { ctx, cwCss, chCss }
@@ -54,7 +58,7 @@ const ExhibitDetector = ({
     const drawH = Math.max(1, Math.round(vidH * scale))
     const dx = Math.floor((cwCss - drawW) / 2)
     const dy = Math.floor((chCss - drawH) / 2)
-    return { vidW, vidH, drawW, drawH, dx, dy }
+    return { drawW, drawH, dx, dy }
   }
 
   const drawBox = (ctx, cwCss, chCss, x, y, w, h, tag) => {
@@ -70,7 +74,6 @@ const ExhibitDetector = ({
     ctx.lineWidth = 2.5
     ctx.strokeStyle = "rgba(0,0,0,0.9)"
     ctx.strokeRect(X + 1.5, Y + 1.5, W - 3, H - 3)
-
     if (tag) {
       ctx.save()
       ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial"
@@ -85,72 +88,44 @@ const ExhibitDetector = ({
       ctx.restore()
     }
   }
-  // Attempt to parse model outputs into a unified array of {prob, label, box:{l,t,w,h} (0..1)}
+
+  // Normalize model outputs into: [{probability, tagName, boundingBox:{left,top,width,height}}]
   const normalizePredictions = (raw, labelMap) => {
-    // 1) standardize Custom Vision format..
-    if (Array.isArray(raw) && raw.length && raw[0] && raw[0].boundingBox) {
-      return raw
-        .map((p) => ({
-          probability: Number(p.probability || 0),
-          tagName: String(p.tagName || ""),
-          boundingBox: {
-            left: Number(p.boundingBox?.left || 0),
-            top: Number(p.boundingBox?.top || 0),
-            width: Number(p.boundingBox?.width || 0),
-            height: Number(p.boundingBox?.height || 0),
-          },
-        }))
-        .filter((p) => p.probability >= threshold)
+    if (Array.isArray(raw) && raw.length && raw[0]?.boundingBox) {
+      return raw.filter((p) => Number(p.probability || 0) >= threshold)
     }
-
-    // 2) Raw triple arrays: [boxes, scores, classes]
-    if (
-      Array.isArray(raw) &&
-      raw.length === 3 &&
-      Array.isArray(raw[0]) &&
-      Array.isArray(raw[1]) &&
-      Array.isArray(raw[2])
-    ) {
-      const boxes = raw[0] || []
-      const scores = raw[1] || []
-      const classes = raw[2] || []
-
+    if (Array.isArray(raw) && raw.length === 3) {
+      const [boxes, scores, classes] = raw
       const out = []
-      const N = Math.min(boxes.length, scores.length, classes.length)
+      const N = Math.min(
+        boxes?.length || 0,
+        scores?.length || 0,
+        classes?.length || 0
+      )
       for (let i = 0; i < N; i++) {
         const prob = Number(scores[i] || 0)
         if (prob < threshold) continue
-        const clsIndex = Number(classes[i] || 0)
-        const label =
-          (labelMap && labelMap[clsIndex]) != null
-            ? labelMap[clsIndex]
-            : String(clsIndex)
-
+        const cls = Number(classes[i] || 0)
+        const label = labelMap?.[cls] ?? String(cls)
         const b = boxes[i] || []
         let left = 0,
           top = 0,
           width = 0,
           height = 0
-
         if (Array.isArray(b) && b.length === 4) {
           const [a, b2, c, d] = b.map((v) => Number(v) || 0)
-
-          // Heuristic:
-          // If c>a and d>b2 and all <=1 => likely [ymin, xmin, ymax, xmax]
           if (a <= 1 && b2 <= 1 && c <= 1 && d <= 1 && c > a && d > b2) {
             top = a
             left = b2
             height = Math.max(0, c - a)
             width = Math.max(0, d - b2)
           } else {
-            // otherwise assume [left, top, width, height] (all normalized 0..1)
             left = a
             top = b2
             width = c
             height = d
           }
         }
-
         out.push({
           probability: prob,
           tagName: label,
@@ -159,12 +134,10 @@ const ExhibitDetector = ({
       }
       return out
     }
-
-    // Unknown format then juz retrun empty
     return []
   }
 
-  // load labels.txt (optional)
+  // Load labels.txt (optional)
   useEffect(() => {
     let ignore = false
     const go = async () => {
@@ -172,9 +145,8 @@ const ExhibitDetector = ({
       try {
         const res = await fetch(labelsUrl, { cache: "no-store" })
         if (!res.ok) return
-        const text = await res.text()
-        // labels.txt: one label per line
-        const arr = text
+        const txt = await res.text()
+        const arr = txt
           .split(/\r?\n/)
           .map((s) => s.trim())
           .filter(Boolean)
@@ -196,20 +168,46 @@ const ExhibitDetector = ({
       activeRef.current = true
 
       try {
-        await tf.setBackend(backend)
+        // Always set WASM paths *before* choosing wasm, so prod can load .wasm files.
+        setWasmPaths(
+          "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/"
+        )
+      } catch {}
+
+      // Try webgl → wasm → cpu
+      let chosen = ""
+      try {
+        await tf.setBackend("webgl")
         await tf.ready()
-      } catch (e) {
+        chosen = tf.getBackend()
+      } catch {
         try {
           await tf.setBackend("wasm")
           await tf.ready()
-        } catch {}
+          chosen = tf.getBackend()
+        } catch {
+          await tf.setBackend("cpu")
+          await tf.ready()
+          chosen = tf.getBackend()
+        }
       }
+      setHud((h) => ({ ...h, backend: chosen }))
 
       // Load model
-      // Use Custom Vision helper if available; otherwise tf.loadGraphModel would also work.
-      objectModel = new cvstfjs.ObjectDetectionModel()
-      await objectModel.loadModelAsync(modelUrl)
-      modelRef.current = objectModel
+      try {
+        objectModel = new cvstfjs.ObjectDetectionModel()
+        await objectModel.loadModelAsync(modelUrl)
+        modelRef.current = objectModel
+        setHud((h) => ({ ...h, model: "loaded" }))
+      } catch (e) {
+        setHud((h) => ({
+          ...h,
+          model: "failed",
+          error: "Model load failed (check URL/CORS)",
+        }))
+        console.error("Model load error:", e)
+        return
+      }
 
       // Wait for webcam
       const video = webcamRef.current?.video
@@ -217,87 +215,78 @@ const ExhibitDetector = ({
       await new Promise((resolve) => {
         const ready = () =>
           video.videoWidth > 0 && video.videoHeight > 0 && resolve()
-        if (video.readyState >= 2) {
-          ready()
-        } else {
-          video.onloadedmetadata = () => resolve()
-        }
-        setTimeout(resolve, 1500)
+        if (video.readyState >= 2) ready()
+        else video.onloadedmetadata = () => resolve()
+        setTimeout(resolve, 2000)
       })
 
       const tick = async () => {
         if (!activeRef.current) return
-        const videoEl = webcamRef.current?.video
+        const v = webcamRef.current?.video
         const overlay = overlayRef.current
-        if (!videoEl || !overlay) return
+        if (!v || !overlay) return
 
-        // size/clear
         const { ctx, cwCss, chCss } = syncOverlayToContainer(overlay)
         ctx.clearRect(0, 0, cwCss, chCss)
 
-        const lb = computeLetterbox(videoEl, cwCss, chCss)
+        const lb = computeLetterbox(v, cwCss, chCss)
 
-        if (debug) {
-          ctx.save()
-          ctx.lineWidth = 3
-          ctx.strokeStyle = "rgba(255,215,0,0.9)"
-          ctx.strokeRect(1.5, 1.5, cwCss - 3, chCss - 3)
-          ctx.restore()
-        }
-
-        // run detection (drop frame if previous call not finished)
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
-            const raw = await modelRef.current.executeAsync(videoEl)
-            // normalize to common shape
+            const raw = await modelRef.current.executeAsync(v)
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
+            setHud((h) => ({ ...h, preds: mapped.length }))
           } catch (e) {
-            // if a specific backend flakes, we keep the loop running
-            // console.warn("executeAsync error:", e)
+            // If WebGL flakes on some devices, swap to WASM once
+            if (tf.getBackend() !== "wasm") {
+              try {
+                await tf.setBackend("wasm")
+                await tf.ready()
+                setHud((h) => ({ ...h, backend: "wasm" }))
+              } catch {}
+            }
           } finally {
             inflightRef.current = false
           }
         }
 
-        // draw last results if “fresh”
         const age = performance.now() - lastRef.current.ts
         const preds = age <= persistMs ? lastRef.current.preds : []
-        if (preds.length) {
-          // draw up to maxDetections
-          let drawn = 0
-          for (const p of preds) {
-            if (drawn >= maxDetections) break
-            const prob = Number(p.probability || 0)
-            const tag = String(p.tagName || "object")
-            const bb = p.boundingBox || { left: 0, top: 0, width: 0, height: 0 }
-            const x = lb.dx + Math.round(bb.left * lb.drawW)
-            const y = lb.dy + Math.round(bb.top * lb.drawH)
-            const w = Math.max(1, Math.round(bb.width * lb.drawW))
-            const h = Math.max(1, Math.round(bb.height * lb.drawH))
-            drawBox(ctx, cwCss, chCss, x, y, w, h, `${tag} ${prob.toFixed(2)}`)
-            drawn++
-          }
+        let drawn = 0
+        for (const p of preds) {
+          if (drawn >= maxDetections) break
+          const prob = Number(p.probability || 0)
+          const tag = String(p.tagName || "object")
+          const bb = p.boundingBox || { left: 0, top: 0, width: 0, height: 0 }
+          const x = lb.dx + Math.round(bb.left * lb.drawW)
+          const y = lb.dy + Math.round(bb.top * lb.drawH)
+          const w = Math.max(1, Math.round(bb.width * lb.drawW))
+          const h = Math.max(1, Math.round(bb.height * lb.drawH))
+          drawBox(
+            ctx,
+            cwCss,
+            chCss,
+            x,
+            y,
+            w,
+            h,
+            `${tag} ${(prob * 100).toFixed(1)}%`
+          )
+          drawn++
         }
 
-        // tiny status
         if (debug) {
           ctx.save()
           ctx.fillStyle = "rgba(0,0,0,0.6)"
-          ctx.fillRect(8, 8, 200, 42)
+          ctx.fillRect(8, 8, 220, 56)
           ctx.fillStyle = "white"
           ctx.font =
             "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-          ctx.fillText(`preds:${(lastRef.current.preds || []).length}`, 14, 24)
-          ctx.fillText(
-            `age:${Math.max(
-              0,
-              (performance.now() - lastRef.current.ts) | 0
-            )}ms`,
-            14,
-            38
-          )
+          ctx.fillText(`backend: ${hud.backend}`, 14, 24)
+          ctx.fillText(`model:   ${hud.model}`, 14, 38)
+          ctx.fillText(`preds:   ${hud.preds}`, 14, 52)
           ctx.restore()
         }
 
@@ -307,7 +296,10 @@ const ExhibitDetector = ({
       rafRef.current = requestAnimationFrame(tick)
     }
 
-    start().catch(console.error)
+    start().catch((e) => {
+      setHud((h) => ({ ...h, error: String(e) }))
+      console.error(e)
+    })
 
     return () => {
       activeRef.current = false
@@ -317,9 +309,19 @@ const ExhibitDetector = ({
       startedRef.current = false
       modelRef.current = null
     }
-  }, [modelUrl, labels, threshold, backend, persistMs, maxDetections, debug])
+  }, [
+    modelUrl,
+    threshold,
+    persistMs,
+    maxDetections,
+    labels,
+    debug,
+    hud.backend,
+    hud.model,
+    hud.preds,
+  ])
 
-  // Layout: webcam video behind, overlay canvas on top
+  // Layout
   const containerStyle = {
     position: "relative",
     width: "100%",
