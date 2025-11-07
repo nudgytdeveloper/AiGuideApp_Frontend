@@ -8,7 +8,7 @@ const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
   threshold = 0.25,
-  persistMs = 600,
+  persistMs = 1200,
   maxDetections = 20,
   debug = true,
 }) => {
@@ -218,7 +218,14 @@ const ExhibitDetector = ({
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
-            const raw = await modelRef.current.executeAsync(v)
+            // const raw = await modelRef.current.executeAsync(v)
+            const input = tf.tidy(() =>
+              tf.image
+                .resizeBilinear(tf.browser.fromPixels(v), [320, 320])
+                .expandDims(0)
+            )
+            const raw = await modelRef.current.executeAsync(input)
+            tf.dispose(input)
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
