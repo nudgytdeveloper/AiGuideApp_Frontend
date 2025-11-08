@@ -4,6 +4,8 @@ import * as tf from "@tensorflow/tfjs"
 import "@tensorflow/tfjs-backend-webgl"
 import "@tensorflow/tfjs-backend-wasm"
 import * as cvstfjs from "@microsoft/customvision-tfjs"
+import { useDispatch } from "react-redux"
+import { setExhibit } from "@nrs/slices/commonSlice"
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
@@ -13,7 +15,13 @@ const ExhibitDetector = ({
   maxDetections = 20,
   inputSize = 320,
   debug = true,
+  dispatchThreshold = 0.7, // fire Redux when prob >= 0.70
+  minDispatchIntervalMs = 30000, // throttle per label to avoid spamming
 }) => {
+  const dispatch = useDispatch()
+  // Track last time we emitted for a given label (per-frame throttle)
+  const lastEmitRef = useRef({}) // { [label]: perfNowMs }
+
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
 
@@ -267,10 +275,44 @@ const ExhibitDetector = ({
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
+            // === dispatch when any prediction crosses the confidence threshold ===
+            if (mapped && mapped.length) {
+              // Option A: pick the highest-confidence detection this frame
+              const top = mapped.reduce(
+                (best, cur) =>
+                  cur.probability > best.probability ? cur : best,
+                mapped[0]
+              )
+              if (top.probability >= dispatchThreshold) {
+                const key = String(top.tagName || "object")
+                const now = performance.now()
+                const last = lastEmitRef.current[key] || 0
+                if (now - last >= minDispatchIntervalMs) {
+                  // Build a clean payload for your slice merge
+                  const payload = {
+                    label: key,
+                    confidence: Number(top.probability),
+                    bbox: {
+                      left: Number(top.boundingBox?.left || 0),
+                      top: Number(top.boundingBox?.top || 0),
+                      width: Number(top.boundingBox?.width || 0),
+                      height: Number(top.boundingBox?.height || 0),
+                    },
+                    at: Date.now(),
+                    source: "camera",
+                  }
+                  // Dispatch your slice’s merge action
+                  console.debug("set payload key: ", payload.key)
+                  dispatch(setExhibit(payload.key))
+                  lastEmitRef.current[key] = now
+                  if (debug) console.log("[dispatch] mergeExhibit", payload)
+                }
+              }
+            }
             if (debug) {
               const vw = v.videoWidth || 0,
                 vh = v.videoHeight || 0
-              console.log(
+              console.debug(
                 "[prod-debug] video:",
                 vw,
                 vh,
