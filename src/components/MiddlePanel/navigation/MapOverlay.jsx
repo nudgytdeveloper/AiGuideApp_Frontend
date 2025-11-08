@@ -25,7 +25,7 @@ const MapOverlay = () => {
     })
 
     const youAreHereSpace =
-      spaces.find((s) => s?.name?.includes("into Science Centre")) || null
+      spaces.find((s) => s?.name?.includes("Hall B")) || null
 
     // console.debug("you are here space: ", youAreHereSpace.center)
     const candidate =
@@ -35,8 +35,8 @@ const MapOverlay = () => {
       youAreHereSpace.center.floorId
         ? youAreHereSpace.center
         : mapView.currentFloor?.id && {
-            latitude: 1.3332786823115224,
-            longitude: 103.73628759945123,
+            latitude: 1.3324536194139647,
+            longitude: 103.73559461967736,
             floorId: mapView.currentFloor.id,
           }
 
