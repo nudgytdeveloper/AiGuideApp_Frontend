@@ -14,9 +14,9 @@ const ExhibitDetector = ({
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
-  debug = true,
+  debug = false,
   dispatchThreshold = 0.7, // fire Redux when prob >= 0.70
-  minDispatchIntervalMs = 30000, // throttle per label to avoid spamming
+  minDispatchIntervalMs = 5000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
   // Track last time we emitted for a given label (per-frame throttle)
@@ -301,9 +301,7 @@ const ExhibitDetector = ({
                     at: Date.now(),
                     source: "camera",
                   }
-                  // Dispatch your slice’s merge action
-                  console.debug("set payload key: ", payload.key)
-                  dispatch(setExhibit(payload.key))
+                  dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
