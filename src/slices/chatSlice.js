@@ -4,13 +4,7 @@ import { fromJS } from "immutable"
 const initialState = fromJS({
   isProcessing: false,
   isListening: false,
-  conversationHistory: [
-    {
-      role: "system",
-      content:
-        "You are the AI Assistant for a Singaporean company called Nudgyt. You are nice and friendly.",
-    },
-  ],
+  conversationHistory: [],
   lastInteractionTime: Date.now(),
 })
 
