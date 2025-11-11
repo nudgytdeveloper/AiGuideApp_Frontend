@@ -14,11 +14,12 @@ const ExhibitDetector = ({
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
-  debug = false,
+  debug = true,
   dispatchThreshold = 0.7, // fire Redux when prob >= 0.70
-  minDispatchIntervalMs = 5000, // throttle per label to avoid spamming
+  minDispatchIntervalMs = 30000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
+  // Track last time we emitted for a given label (per-frame throttle)
   const lastEmitRef = useRef({}) // { [label]: perfNowMs }
 
   const webcamRef = useRef(null)
@@ -40,31 +41,22 @@ const ExhibitDetector = ({
     error: "",
   })
 
-  // offscreen canvas + cached contexts..
+  // offscreen canvas used as model input
   const scratchRef = useRef(null)
-  const scratchCtxRef = useRef(null)
-  const overlayCtxRef = useRef(null)
+  const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent)
 
   const syncOverlayToContainer = (canvas) => {
     const rect = (canvas.parentElement || canvas).getBoundingClientRect()
     const cwCss = Math.max(1, Math.round(rect.width))
     const chCss = Math.max(1, Math.round(rect.height))
     const dpr = Math.max(1, window.devicePixelRatio || 1)
-
     if (canvas.style.width !== `${cwCss}px`) canvas.style.width = `${cwCss}px`
     if (canvas.style.height !== `${chCss}px`) canvas.style.height = `${chCss}px`
-
     const cwBmp = Math.max(1, Math.round(cwCss * dpr))
     const chBmp = Math.max(1, Math.round(chCss * dpr))
     if (canvas.width !== cwBmp) canvas.width = cwBmp
     if (canvas.height !== chBmp) canvas.height = chBmp
-
-    // reuse single 2D context instead of creating new everytime.. (for better performance concernn..)
-    let ctx = overlayCtxRef.current
-    if (!ctx) {
-      ctx = canvas.getContext("2d")
-      overlayCtxRef.current = ctx
-    }
+    const ctx = canvas.getContext("2d")
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     return { ctx, cwCss, chCss }
   }
@@ -109,6 +101,9 @@ const ExhibitDetector = ({
     }
   }
 
+  // Normalize predictions:
+  // 1) CV objects [{ probability, tagName, boundingBox:{left,top,width,height} }]
+  // 2) Raw triple [boxes, scores, classes]
   const normalizePredictions = (raw, labelMap) => {
     if (Array.isArray(raw) && raw.length && raw[0]?.boundingBox) {
       return raw.filter((p) => Number(p.probability || 0) >= threshold)
@@ -179,7 +174,6 @@ const ExhibitDetector = ({
 
   useEffect(() => {
     let objectModel
-    let onLoadedMeta = null
 
     const resolveUrl = (u) => {
       if (/^https?:\/\//i.test(u)) return u
@@ -192,7 +186,6 @@ const ExhibitDetector = ({
       startedRef.current = true
       activeRef.current = true
 
-      // read once; don't put in deps
       setHud((h) => ({ ...h, backend: tf.getBackend() }))
 
       // Preflight model URLs
@@ -240,33 +233,24 @@ const ExhibitDetector = ({
         return
       }
 
-      // Wait for webcam video metadata
+      // Wait video
       const video = webcamRef.current?.video
       if (!video) return
       await new Promise((resolve) => {
         const ready = () =>
           video.videoWidth > 0 && video.videoHeight > 0 && resolve()
         if (video.readyState >= 2) ready()
-        else {
-          onLoadedMeta = () => resolve()
-          video.onloadedmetadata = onLoadedMeta
-        }
-        // last-resort timeout
+        else video.onloadedmetadata = () => resolve()
         setTimeout(resolve, 2000)
       })
 
-      // init / reuse scratch canvas & 2D ctx
+      //  ensure scratch canvas exists & sized..
       if (!scratchRef.current)
         scratchRef.current = document.createElement("canvas")
       const sc = scratchRef.current
       sc.width = inputSize
       sc.height = inputSize
-      if (!scratchCtxRef.current) {
-        scratchCtxRef.current = sc.getContext("2d", {
-          willReadFrequently: false,
-        })
-      }
-      const sctx = scratchCtxRef.current
+      const sctx = sc.getContext("2d", { willReadFrequently: false })
 
       const tick = async () => {
         if (!activeRef.current) return
@@ -282,6 +266,7 @@ const ExhibitDetector = ({
         // draw webcam → offscreen square
         sctx.drawImage(v, 0, 0, inputSize, inputSize)
 
+        // inference on canvas element (preferred by CV TFJS)
         if (!inflightRef.current && modelRef.current) {
           inflightRef.current = true
           try {
@@ -290,8 +275,9 @@ const ExhibitDetector = ({
             const mapped = normalizePredictions(raw, labels)
             lastRef.current = { ts: performance.now(), preds: mapped }
             setHud((h) => ({ ...h, preds: mapped.length }))
-
+            // === dispatch when any prediction crosses the confidence threshold ===
             if (mapped && mapped.length) {
+              // Option A: pick the highest-confidence detection this frame
               const top = mapped.reduce(
                 (best, cur) =>
                   cur.probability > best.probability ? cur : best,
@@ -302,6 +288,7 @@ const ExhibitDetector = ({
                 const now = performance.now()
                 const last = lastEmitRef.current[key] || 0
                 if (now - last >= minDispatchIntervalMs) {
+                  // Build a clean payload for your slice merge
                   const payload = {
                     label: key,
                     confidence: Number(top.probability),
@@ -314,13 +301,14 @@ const ExhibitDetector = ({
                     at: Date.now(),
                     source: "camera",
                   }
-                  dispatch(setExhibit(payload.label))
+                  // Dispatch your slice’s merge action
+                  console.debug("set payload key: ", payload.key)
+                  dispatch(setExhibit(payload.key))
                   lastEmitRef.current[key] = now
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
               }
             }
-
             if (debug) {
               const vw = v.videoWidth || 0,
                 vh = v.videoHeight || 0
@@ -338,7 +326,7 @@ const ExhibitDetector = ({
               ...h,
               error: h.error || `executeAsync(canvas): ${String(e)}`,
             }))
-
+            // as a minimal fallback try the video element once
             try {
               let raw2 = await modelRef.current.executeAsync(v)
               const mapped2 = normalizePredictions(raw2, labels)
@@ -350,6 +338,7 @@ const ExhibitDetector = ({
           }
         }
 
+        // draw persisted predictions
         const age = performance.now() - lastRef.current.ts
         const preds = age <= persistMs ? lastRef.current.preds : []
         let drawn = 0
@@ -375,6 +364,7 @@ const ExhibitDetector = ({
           drawn++
         }
 
+        // HUD
         if (debug) {
           ctx.save()
           ctx.fillStyle = "rgba(0,0,0,0.85)"
@@ -405,36 +395,27 @@ const ExhibitDetector = ({
     })
 
     return () => {
-      // stop drawing/inference loop
       activeRef.current = false
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current)
-      }
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
       inflightRef.current = false
       startedRef.current = false
-
-      // detach video handler if we attached it
-      const video = webcamRef.current?.video
-      if (video && onLoadedMeta && video.onloadedmetadata === onLoadedMeta) {
-        video.onloadedmetadata = null
-      }
-      // release model reference (cvstfjs has no explicit dispose)
       modelRef.current = null
-      // release overlay ctx ref (browser will GC with canvas)
-      overlayCtxRef.current = null
-      // shrink & drop scratch canvas to encourage GC of backing store
-      if (scratchRef.current) {
-        try {
-          scratchRef.current.width = 0
-          scratchRef.current.height = 0
-        } catch {}
-      }
-      scratchCtxRef.current = null
-      scratchRef.current = null
     }
-  }, [modelUrl, labels, threshold, persistMs, maxDetections, inputSize, debug])
+  }, [
+    modelUrl,
+    labels,
+    threshold,
+    persistMs,
+    maxDetections,
+    inputSize,
+    debug,
+    hud.backend,
+    hud.model,
+    hud.preds,
+  ])
 
+  // Layout
   const containerStyle = {
     position: "relative",
     width: "100%",

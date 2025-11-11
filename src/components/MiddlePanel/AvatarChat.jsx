@@ -91,7 +91,7 @@ const AvatarChat = () => {
     const loader = new GLTFLoader()
 
     loader.load(
-      "/models/SCB_female.glb",
+      "/models/SCB_female_polo.glb",
       (gltf) => {
         const model = gltf.scene
         model.position.y = -0.3 // Move the model down
@@ -99,14 +99,43 @@ const AvatarChat = () => {
         modelRef.current = model
 
         animationGroup.add(model)
+model.traverse((object) => {
+          if (object.isMesh) {
+            object.castShadow = true
+            object.receiveShadow = true
+            object.material.envMapIntensity = 0.3
 
-        model.traverse((object) => {
-          if (object.isMesh) {
-            object.castShadow = true
-            object.receiveShadow = true
-            object.material.envMapIntensity = 0.3
-          }
-        })
+            if (object.morphTargetDictionary && object.morphTargetInfluences) {
+
+
+              // Get the indices of the ARKit "smile" blend shapes
+              const smileLeftIndex = object.morphTargetDictionary['mouthSmileLeft'];
+              const smileRightIndex = object.morphTargetDictionary['mouthSmileRight'];
+              
+              // (Recommended) A good smile also involves the cheeks
+              const cheekPuffLeftIndex = object.morphTargetDictionary['cheekPuffLeft'];
+              const cheekPuffRightIndex = object.morphTargetDictionary['cheekPuffRight'];
+
+              // Set the "default" smile value (0.0 = 0%, 1.0 = 100%)
+              const smileValue = 0.5; // A 50% smile
+              const cheekPuffValue = 0.2; // A 20% cheek puff
+
+              // Apply the values *if* the morph targets exist on the model
+              if (smileLeftIndex !== undefined) {
+                object.morphTargetInfluences[smileLeftIndex] = smileValue;
+              }
+              if (smileRightIndex !== undefined) {
+                object.morphTargetInfluences[smileRightIndex] = smileValue;
+              }
+              if (cheekPuffLeftIndex !== undefined) {
+                object.morphTargetInfluences[cheekPuffLeftIndex] = cheekPuffValue;
+              }
+              if (cheekPuffRightIndex !== undefined) {
+                object.morphTargetInfluences[cheekPuffRightIndex] = cheekPuffValue;
+              }
+            }
+          }
+        })
 
         // Load idle animation
         loader.load(
