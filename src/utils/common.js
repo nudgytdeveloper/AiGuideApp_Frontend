@@ -1,4 +1,5 @@
 import { fromJS, is } from "immutable"
+import { useRef } from "react"
 
 export function ArrayEqual(left, right) {
   return is(fromJS(left), fromJS(right))
@@ -10,4 +11,15 @@ export const resolveLabel = (clsVal, labelMap) => {
     return labelMap[idx]
   }
   return String(idx)
+}
+export function useThrottle(ms = 250) {
+  const lastRef = useRef(0)
+  return () => {
+    const now = Date.now()
+    if (now - lastRef.current >= ms) {
+      lastRef.current = now
+      return true
+    }
+    return false
+  }
 }
