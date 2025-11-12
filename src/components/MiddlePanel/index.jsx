@@ -6,7 +6,6 @@ import scanIcon from "@nrs/assets/img/live_scan.png"
 import { setPageType } from "@nrs/slices/commonSlice"
 import { ArrayEqual } from "@nrs/utils/common"
 import { useCallback } from "react"
-import LiveFeed from "@nrs/components/LiveFeed"
 import LiveScan from "@nrs/components/MiddlePanel/LiveScan"
 import MappedinMap from "@nrs/components/MiddlePanel/MappedinMap"
 

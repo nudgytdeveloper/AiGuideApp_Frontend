@@ -5,7 +5,7 @@ import "@tensorflow/tfjs-backend-webgl"
 import "@tensorflow/tfjs-backend-wasm"
 import * as cvstfjs from "@microsoft/customvision-tfjs"
 import { useDispatch } from "react-redux"
-import { setExhibit } from "@nrs/slices/commonSlice"
+import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
 
 const ExhibitDetector = ({
@@ -170,7 +170,6 @@ const ExhibitDetector = ({
           .split(/\r?\n/)
           .map((s) => s.trim())
           .filter(Boolean)
-        console.debug("arr: ", arr)
         if (!ignore) {
           setLabels(arr)
           labelsRef.current = arr

@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
+import { useSelector } from "react-redux"
+import { ArrayEqual } from "@nrs/utils/common"
 
 const MapOverlay = () => {
   const { mapData, mapView } = useMap()
   const startCoordRef = useRef(null)
+  const [exhibit, position] = useSelector((state) => {
+    return [state.detection.get("exhibit"), state.navigation.get("position")]
+  }, ArrayEqual)
 
   const spaces = useMemo(() => {
     if (!mapData) return []
@@ -23,30 +28,25 @@ const MapOverlay = () => {
         interactive: true,
       })
     })
+  }, [mapView, spaces])
 
-    const youAreHereSpace =
-      spaces.find((s) => s?.name?.includes("Hall B")) || null
-
-    // console.debug("you are here space: ", youAreHereSpace.center)
-    const candidate =
-      youAreHereSpace?.center &&
-      youAreHereSpace.center.latitude &&
-      youAreHereSpace.center.longitude &&
-      youAreHereSpace.center.floorId
-        ? youAreHereSpace.center
-        : mapView.currentFloor?.id && {
-            latitude: 1.3324536194139647,
-            longitude: 103.73559461967736,
-            floorId: mapView.currentFloor.id,
-          }
-
+  useEffect(() => {
+    // console.debug("exhibit: ", exhibit)
+    // console.debug("position: ", position)
+    // TODO: change to exibhit hall mapping in future when full dataset trained.
+    const candidate = exhibit
+      ? spaces.find((s) => s?.name?.includes("Hall B"))
+        ? spaces.find((s) => s?.name?.includes("Hall B")).center
+        : position
+      : position
+    console.debug("CANDIDATE: ", candidate)
     if (candidate) {
       startCoordRef.current = candidate
       console.debug("Fixed start set at:", candidate)
     } else {
       console.warn("Could not resolve a fixed start coordinate.")
     }
-  }, [mapView, spaces])
+  }, [exhibit, position])
 
   useMapViewEvent(
     "click",
