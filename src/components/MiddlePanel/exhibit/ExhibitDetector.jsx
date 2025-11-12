@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState, useCallback } from "react"
 import Webcam from "react-webcam"
 import * as tf from "@tensorflow/tfjs"
 import "@tensorflow/tfjs-backend-webgl"
@@ -7,6 +7,7 @@ import * as cvstfjs from "@microsoft/customvision-tfjs"
 import { useDispatch } from "react-redux"
 import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
+import Toast from "@nrs/components/Common/Toast"
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
@@ -17,7 +18,7 @@ const ExhibitDetector = ({
   inputSize = 320,
   debug = false,
   dispatchThreshold = 0.7, // fire Redux when prob >= 0.70
-  minDispatchIntervalMs = 5000, // throttle per label to avoid spamming
+  minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
   const lastEmitRef = useRef({}) // { [label]: perfNowMs }
@@ -35,6 +36,8 @@ const ExhibitDetector = ({
   const labelsRef = useRef([])
   const lastRef = useRef({ ts: 0, preds: [] })
 
+  const [showToast, setShowToast] = useState(false)
+
   const [hud, setHud] = useState({
     backend: "boot",
     model: "loading",
@@ -46,6 +49,10 @@ const ExhibitDetector = ({
   const scratchRef = useRef(null)
   const scratchCtxRef = useRef(null)
   const overlayCtxRef = useRef(null)
+
+  const handleToastClose = useCallback(() => {
+    setShowToast(false)
+  }, [])
 
   const syncOverlayToContainer = (canvas) => {
     const rect = (canvas.parentElement || canvas).getBoundingClientRect()
@@ -319,6 +326,7 @@ const ExhibitDetector = ({
                     at: Date.now(),
                     source: "camera",
                   }
+                  if (!showToast) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
@@ -468,6 +476,12 @@ const ExhibitDetector = ({
       <canvas
         ref={overlayRef}
         style={{ ...layerStyle, zIndex: 2, pointerEvents: "none" }}
+      />
+      <Toast
+        message={"Exhibit detected.\nLocation Setted"}
+        show={showToast}
+        duration={5000}
+        onClose={handleToastClose}
       />
     </div>
   )

@@ -509,3 +509,38 @@ canvas {
   border: 1px solid #fff;
   opacity: 1;
 }
+/* Toast Css */
+.toast-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+}
+
+.toast-message {
+  background: rgba(0, 0, 0, 0.6); /* semi-transparent black */
+  color: #fff;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  10%,
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
