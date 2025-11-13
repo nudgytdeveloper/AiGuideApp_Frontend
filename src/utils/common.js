@@ -3,33 +3,11 @@ import { fromJS, is } from "immutable"
 export function ArrayEqual(left, right) {
   return is(fromJS(left), fromJS(right))
 }
-// turn a clicked Space or POI into a routable { latitude, longitude, floorId }
-const getNavCoordFromFeature = (feature) => {
-  if (!feature) return null
-
-  // POI-style (point-of-interest)
-  // usually has .coordinate { latitude, longitude, floorId } AND .floor
-  if (feature.coordinate?.latitude && feature.coordinate?.longitude) {
-    return {
-      latitude: feature.coordinate.latitude,
-      longitude: feature.coordinate.longitude,
-      floorId:
-        feature.coordinate.floorId ||
-        feature.floor?.id || // backup
-        feature.floorId,
-    }
+export const resolveLabel = (clsVal, labelMap) => {
+  // snap floats like 6.999999 to 7 deterministically
+  const idx = Math.floor(Number(clsVal) + 1e-6)
+  if (Array.isArray(labelMap) && idx >= 0 && idx < labelMap.length) {
+    return labelMap[idx]
   }
-
-  // forr spaces..
-  // usually has .center { latitude, longitude, floorId }
-  if (feature.center?.latitude && feature.center?.longitude) {
-    return {
-      latitude: feature.center.latitude,
-      longitude: feature.center.longitude,
-      floorId: feature.center.floorId || feature.floor?.id || feature.floorId,
-    }
-  }
-
-  console.warn("No usable nav coord for feature:", feature)
-  return null
+  return String(idx)
 }
