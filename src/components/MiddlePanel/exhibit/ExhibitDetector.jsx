@@ -12,12 +12,12 @@ import Toast from "@nrs/components/Common/Toast"
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.05,
+  threshold = 0.7, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
   debug = false,
-  dispatchThreshold = 0.7, // fire Redux when prob >= 0.70
+  dispatchThreshold = 0.8, // fire Redux when prob >= 0.80
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
@@ -37,6 +37,7 @@ const ExhibitDetector = ({
   const lastRef = useRef({ ts: 0, preds: [] })
 
   const [showToast, setShowToast] = useState(false)
+  const [detectedLabel, setDetectedLabel] = useState("")
 
   const [hud, setHud] = useState({
     backend: "boot",
@@ -89,33 +90,9 @@ const ExhibitDetector = ({
     return { drawW, drawH, dx, dy }
   }
 
+  // bounding box renderer disabled – we keep this but don't draw anything
   const drawBox = (ctx, cwCss, chCss, x, y, w, h, tag) => {
-    const X = Math.max(0, Math.round(x))
-    const Y = Math.max(0, Math.round(y))
-    const W = Math.max(1, Math.min(Math.round(w), cwCss - X))
-    const H = Math.max(1, Math.min(Math.round(h), chCss - Y))
-    ctx.fillStyle = "rgba(0,255,0,0.26)"
-    ctx.fillRect(X, Y, W, H)
-    ctx.lineWidth = 6
-    ctx.strokeStyle = "rgba(255,255,255,0.95)"
-    ctx.strokeRect(X, Y, W, H)
-    ctx.lineWidth = 2.5
-    ctx.strokeStyle = "rgba(0,0,0,0.9)"
-    ctx.strokeRect(X + 1.5, Y + 1.5, W - 3, H - 3)
-
-    if (tag) {
-      ctx.save()
-      ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial"
-      const tw = Math.ceil(ctx.measureText(tag).width) + 8
-      const th = 20
-      const lx = X
-      const ly = Math.max(0, Y - th - 2)
-      ctx.fillStyle = "rgba(0,0,0,0.75)"
-      ctx.fillRect(lx, ly, tw, th)
-      ctx.fillStyle = "white"
-      ctx.fillText(tag, lx + 6, ly + th - 6)
-      ctx.restore()
-    }
+    return
   }
 
   const normalizePredictions = (raw, labelMap) => {
@@ -326,6 +303,10 @@ const ExhibitDetector = ({
                     at: Date.now(),
                     source: "camera",
                   }
+
+                  // Update label shown at top of screen..
+                  setDetectedLabel(`${payload.label}`)
+
                   if (!showToast) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
@@ -375,6 +356,8 @@ const ExhibitDetector = ({
           const y = lb.dy + Math.round(bb.top * lb.drawH)
           const w = Math.max(1, Math.round(bb.width * lb.drawW))
           const h = Math.max(1, Math.round(bb.height * lb.drawH))
+
+          // still calling drawBox, but it's a no-opeation anymore due to ciel requested
           drawBox(
             ctx,
             cwCss,
@@ -466,6 +449,29 @@ const ExhibitDetector = ({
 
   return (
     <div style={containerStyle}>
+      {detectedLabel && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            padding: "6px 12px",
+            borderRadius: 999,
+            background: "rgba(0,0,0,0.7)",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 500,
+            whiteSpace: "pre-line",
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          {detectedLabel}
+        </div>
+      )}
+
       <Webcam
         ref={webcamRef}
         audio={false}
