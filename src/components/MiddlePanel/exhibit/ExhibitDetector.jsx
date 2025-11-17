@@ -21,7 +21,7 @@ const ExhibitDetector = ({
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
-  const lastEmitRef = useRef({}) // { [label]: perfNowMs }
+  const lastEmitRef = useRef({}) // { [label]: perfNowMs. }
 
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -90,7 +90,7 @@ const ExhibitDetector = ({
     return { drawW, drawH, dx, dy }
   }
 
-  // bounding box renderer disabled – we keep this but don't draw anything
+  // draw nothing, to be remove in future just in case, stay for revert
   const drawBox = (ctx, cwCss, chCss, x, y, w, h, tag) => {
     return
   }
@@ -304,7 +304,7 @@ const ExhibitDetector = ({
                     source: "camera",
                   }
 
-                  // Update label shown at top of screen..
+                  // update hte label.. (${(payload.confidence * 100).toFixed(1)}%)
                   setDetectedLabel(`${payload.label}`)
 
                   if (!showToast) setShowToast(true)
@@ -357,7 +357,7 @@ const ExhibitDetector = ({
           const w = Math.max(1, Math.round(bb.width * lb.drawW))
           const h = Math.max(1, Math.round(bb.height * lb.drawH))
 
-          // still calling drawBox, but it's a no-opeation anymore due to ciel requested
+          // still calling drawBox, but it's a no-op for now. to be remove sooon
           drawBox(
             ctx,
             cwCss,
@@ -453,7 +453,7 @@ const ExhibitDetector = ({
         <div
           style={{
             position: "absolute",
-            top: 8,
+            top: 30,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 3,
@@ -461,8 +461,8 @@ const ExhibitDetector = ({
             borderRadius: 999,
             background: "rgba(0,0,0,0.7)",
             color: "#fff",
-            fontSize: 14,
-            fontWeight: 500,
+            fontSize: 16,
+            fontWeight: "bold",
             whiteSpace: "pre-line",
             textAlign: "center",
             pointerEvents: "none",
@@ -484,7 +484,7 @@ const ExhibitDetector = ({
         style={{ ...layerStyle, zIndex: 2, pointerEvents: "none" }}
       />
       <Toast
-        message={"Exhibit detected.\nLocation Setted"}
+        message={"Exhibit detected.\nYour location is set."}
         show={showToast}
         duration={5000}
         onClose={handleToastClose}
