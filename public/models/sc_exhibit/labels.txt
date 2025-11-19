@@ -1,13 +1,12 @@
-EAP-01 Earth Alive
-EAP-03 Bend the carbon curve
-EAP-04 Climate Chat
-EAP-05 Freeloader
-EAP-07 Disaster Teamwork
-EAP-10 Condensation & Evaporation
-EAP-11 Rain and Terrain
-EAP-16 Swirling Storm
-EAP-18 Atmosphere Hydrosphere
-EAP-19 Building for Quakes
-EAP-20 Un-solid Ground
+Bioethics
+Climate Change
+Dialogue With Time
+Earth Alive
+Energy Story
+Know Your Poo
+Mind Eye
+Phobia
+Savage Garden
+Some Call it Science
 TestExhibit-01
-TestExhibit-02
+Urban Mutations
