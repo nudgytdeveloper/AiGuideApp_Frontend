@@ -8,7 +8,7 @@ import {
   setLastInteractionTime,
 } from "@nrs/slices/chatSlice"
 import { ArrayEqual } from "@nrs/utils/common"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useDispatch } from "react-redux"
 import { useSelector } from "react-redux"
 
@@ -30,7 +30,8 @@ const BottomPanel = () => {
       ]
     }, ArrayEqual),
     dispatch = useDispatch(),
-    recognitionRef = useRef(null)
+    recognitionRef = useRef(null),
+    [inputValue, setInputValue] = useState("")
 
   // Start listening - triggered by mic button
   const startListening = () => {
@@ -45,6 +46,7 @@ const BottomPanel = () => {
     if (text) {
       addToConversationHistory("user", text)
       input.value = ""
+      setInputValue("")
     }
   }
 
@@ -287,14 +289,28 @@ ENGAGEMENT STRATEGIES:
         <ConversationHistory messages={conversationHistory} />
       ) : null}
       <footer className="chat-box">
-        <input
-          id="chatbox"
-          name="chatbox"
-          type="text"
-          placeholder="Type your message..."
-          onKeyPress={handleKeyPress}
-          disabled={isProcessing}
-        />
+        <div className="input-wrapper">
+          <input
+            id="chatbox"
+            name="chatbox"
+            type="text"
+            placeholder="Type your message..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={isProcessing}
+          />
+          {inputValue.trim().length > 0 && (
+            <button
+              className="send-btn"
+              onClick={handleTextSubmit}
+              disabled={isProcessing}
+            >
+              ▶
+            </button>
+          )}
+        </div>
+
         <button
           className={`mic-btn ${isListening ? "listening" : ""} ${
             isProcessing ? "processing" : ""
