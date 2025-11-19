@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
 import { ArrayEqual } from "@nrs/utils/common"
+import { openPopUp } from "@nrs/slices/commonSlice"
+import { Success } from "@nrs/constants/PopupType"
 
 const MapOverlay = () => {
+  const dispatch = useDispatch()
   const { mapData, mapView } = useMap()
   const startCoordRef = useRef(null)
   const [exhibit, position] = useSelector((state) => {
@@ -130,6 +133,12 @@ const MapOverlay = () => {
         }
 
         if (!directions) {
+          dispatch(
+            openPopUp({
+              popupType: Success,
+              message: "This space is not accessible..",
+            })
+          )
           console.warn("No directions returned.")
           return
         }
