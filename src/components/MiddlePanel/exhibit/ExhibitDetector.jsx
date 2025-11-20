@@ -16,7 +16,7 @@ const ExhibitDetector = ({
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
-  debug = false,
+  debug = true,
   dispatchThreshold = 0.8, // fire Redux when prob >= 0.80
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
