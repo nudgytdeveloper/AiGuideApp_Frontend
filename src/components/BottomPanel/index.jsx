@@ -177,7 +177,10 @@ ENGAGEMENT STRATEGIES:
       }
 
       const data = await response.json()
-      const aiResponse = data.choices[0].message.content
+      const aiResponse =
+        data?.candidates?.[0]?.content?.parts
+          ?.map((p) => p.text || "")
+          .join("") || "(no response from model)" // Openai format: data.choices[0].message.content
 
       dispatch(
         addConversationHistory({
