@@ -39,12 +39,16 @@ const ExhibitDetector = ({
   const [showToast, setShowToast] = useState(false)
   const [detectedLabel, setDetectedLabel] = useState("")
 
-  const [hud, setHud] = useState({
+  const hudRef = useRef({
     backend: "boot",
     model: "loading",
     preds: 0,
     error: "",
   })
+
+  const updateHud = useCallback((patch) => {
+    hudRef.current = { ...hudRef.current, ...patch }
+  }, [])
 
   // offscreen canvas + cached contexts..
   const scratchRef = useRef(null)
@@ -69,7 +73,6 @@ const ExhibitDetector = ({
     if (canvas.width !== cwBmp) canvas.width = cwBmp
     if (canvas.height !== chBmp) canvas.height = chBmp
 
-    // reuse single 2D context instead of creating new everytime.. (for better performance concernn..)
     let ctx = overlayCtxRef.current
     if (!ctx) {
       ctx = canvas.getContext("2d")
@@ -90,7 +93,6 @@ const ExhibitDetector = ({
     return { drawW, drawH, dx, dy }
   }
 
-  // draw nothing, to be remove in future just in case, stay for revert
   const drawBox = (ctx, cwCss, chCss, x, y, w, h, tag) => {
     return
   }
@@ -181,19 +183,17 @@ const ExhibitDetector = ({
       startedRef.current = true
       activeRef.current = true
 
-      // read once; don't put in deps
-      setHud((h) => ({ ...h, backend: tf.getBackend() }))
+      // backend info
+      updateHud({ backend: tf.getBackend() })
 
-      // Preflight model URLs
       const resolvedModelUrl = resolveUrl(modelUrl)
       try {
         const probe = await fetch(resolvedModelUrl, { cache: "no-store" })
         if (!probe.ok) {
-          setHud((h) => ({
-            ...h,
+          updateHud({
             model: "failed",
             error: `model.json HTTP ${probe.status}`,
-          }))
+          })
           return
         }
         const dir = resolvedModelUrl.substring(
@@ -202,15 +202,14 @@ const ExhibitDetector = ({
         )
         const wprobe = await fetch(dir + "weights.bin", { cache: "no-store" })
         if (!wprobe.ok) {
-          setHud((h) => ({
-            ...h,
+          updateHud({
             model: "failed",
             error: `weights.bin HTTP ${wprobe.status}`,
-          }))
+          })
           return
         }
       } catch (e) {
-        setHud((h) => ({ ...h, model: "failed", error: String(e) }))
+        updateHud({ model: "failed", error: String(e) })
         return
       }
 
@@ -219,13 +218,12 @@ const ExhibitDetector = ({
         objectModel = new cvstfjs.ObjectDetectionModel()
         await objectModel.loadModelAsync(resolvedModelUrl)
         modelRef.current = objectModel
-        setHud((h) => ({ ...h, model: "loaded", error: "" }))
+        updateHud({ model: "loaded", error: "" })
       } catch (e) {
-        setHud((h) => ({
-          ...h,
+        updateHud({
           model: "failed",
           error: `loadModelAsync: ${String(e)}`,
-        }))
+        })
         return
       }
 
@@ -278,7 +276,7 @@ const ExhibitDetector = ({
             let raw = await modelRef.current.executeAsync(img)
             const mapped = normalizePredictions(raw, labelsRef.current)
             lastRef.current = { ts: performance.now(), preds: mapped }
-            setHud((h) => ({ ...h, preds: mapped.length }))
+            updateHud({ preds: mapped.length })
 
             if (mapped && mapped.length) {
               const top = mapped.reduce(
@@ -304,9 +302,7 @@ const ExhibitDetector = ({
                     source: "camera",
                   }
 
-                  // update hte label.. (${(payload.confidence * 100).toFixed(1)}%)
                   setDetectedLabel(`${payload.label}`)
-
                   if (!showToast) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
@@ -328,16 +324,18 @@ const ExhibitDetector = ({
               )
             }
           } catch (e) {
-            setHud((h) => ({
-              ...h,
-              error: h.error || `executeAsync(canvas): ${String(e)}`,
-            }))
+            const currentErr = hudRef.current.error
+            if (!currentErr) {
+              updateHud({
+                error: `executeAsync(canvas): ${String(e)}`,
+              })
+            }
 
             try {
               let raw2 = await modelRef.current.executeAsync(v)
               const mapped2 = normalizePredictions(raw2, labelsRef.current)
               lastRef.current = { ts: performance.now(), preds: mapped2 }
-              setHud((h) => ({ ...h, preds: mapped2.length }))
+              updateHud({ preds: mapped2.length })
             } catch {}
           } finally {
             inflightRef.current = false
@@ -357,7 +355,6 @@ const ExhibitDetector = ({
           const w = Math.max(1, Math.round(bb.width * lb.drawW))
           const h = Math.max(1, Math.round(bb.height * lb.drawH))
 
-          // still calling drawBox, but it's a no-op for now. to be remove sooon
           drawBox(
             ctx,
             cwCss,
@@ -372,6 +369,7 @@ const ExhibitDetector = ({
         }
 
         if (debug) {
+          const hud = hudRef.current
           ctx.save()
           ctx.fillStyle = "rgba(0,0,0,0.85)"
           ctx.fillRect(10, 10, 260, hud.error ? 90 : 70)
@@ -396,12 +394,11 @@ const ExhibitDetector = ({
     }
 
     start().catch((e) => {
-      setHud((h) => ({ ...h, model: "failed", error: String(e) }))
+      updateHud({ model: "failed", error: String(e) })
       console.error(e)
     })
 
     return () => {
-      // stop drawing/inference loop
       activeRef.current = false
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current)
@@ -410,16 +407,13 @@ const ExhibitDetector = ({
       inflightRef.current = false
       startedRef.current = false
 
-      // detach video handler if we attached it
       const video = webcamRef.current?.video
       if (video && onLoadedMeta && video.onloadedmetadata === onLoadedMeta) {
         video.onloadedmetadata = null
       }
-      // release model reference (cvstfjs has no explicit dispose)
+
       modelRef.current = null
-      // release overlay ctx ref (browser will GC with canvas)
       overlayCtxRef.current = null
-      // shrink & drop scratch canvas to encourage GC of backing store
       if (scratchRef.current) {
         try {
           scratchRef.current.width = 0
@@ -429,7 +423,20 @@ const ExhibitDetector = ({
       scratchCtxRef.current = null
       scratchRef.current = null
     }
-  }, [modelUrl, labels, threshold, persistMs, maxDetections, inputSize, debug])
+  }, [
+    modelUrl,
+    labels,
+    threshold,
+    persistMs,
+    maxDetections,
+    inputSize,
+    debug,
+    dispatchThreshold,
+    minDispatchIntervalMs,
+    updateHud,
+    dispatch,
+    showToast,
+  ])
 
   const containerStyle = {
     position: "relative",
