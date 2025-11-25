@@ -91,7 +91,7 @@ const AvatarChat = () => {
     const loader = new GLTFLoader()
 
     loader.load(
-      "/models/SCB_female_polo.glb",
+      "/models/SCS_female_wave.glb",
       (gltf) => {
         const model = gltf.scene
         model.position.y = -0.3 // Move the model down
@@ -117,8 +117,8 @@ model.traverse((object) => {
               const cheekPuffRightIndex = object.morphTargetDictionary['cheekPuffRight'];
 
               // Set the "default" smile value (0.0 = 0%, 1.0 = 100%)
-              const smileValue = 0.5; // A 50% smile
-              const cheekPuffValue = 0.2; // A 20% cheek puff
+              const smileValue = 0.2; // A 50% smile
+              const cheekPuffValue = 0.1; // A 20% cheek puff
 
               // Apply the values *if* the morph targets exist on the model
               if (smileLeftIndex !== undefined) {
@@ -138,20 +138,20 @@ model.traverse((object) => {
         })
 
         // Load idle animation
-        loader.load(
-          "/animations/idle.glb",
-          (animGltf) => {
-            if (animGltf.animations && animGltf.animations.length > 0) {
-              const clip = filterAnimation(animGltf.animations[0])
-              const action = mixer.clipAction(clip)
-              action.setLoop(THREE.LoopRepeat)
-              action.play()
-            }
-          },
-          undefined,
-          (error) => console.error("Error loading animation:", error)
-        )
-      },
+        //loader.load(
+          //"/animations/idle.glb",
+          //(animGltf) => {
+            //if (animGltf.animations && animGltf.animations.length > 0) {
+              //const clip = filterAnimation(animGltf.animations[0])
+              //const action = mixer.clipAction(clip)
+              //action.setLoop(THREE.LoopRepeat)
+              //action.play()
+            //}
+          //},
+          //undefined,
+          //(error) => console.error("Error loading animation:", error)
+        //)
+      //},
       undefined,
       (error) => {
         console.error("Error loading model:", error)
