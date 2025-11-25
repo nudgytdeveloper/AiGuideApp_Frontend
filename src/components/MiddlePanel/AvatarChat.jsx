@@ -138,20 +138,20 @@ model.traverse((object) => {
         })
 
         // Load idle animation
-        //loader.load(
-          //"/animations/idle.glb",
-          //(animGltf) => {
-            //if (animGltf.animations && animGltf.animations.length > 0) {
-              //const clip = filterAnimation(animGltf.animations[0])
-              //const action = mixer.clipAction(clip)
-              //action.setLoop(THREE.LoopRepeat)
-              //action.play()
-            //}
-          //},
-          //undefined,
-          //(error) => console.error("Error loading animation:", error)
-        //)
-      //},
+        loader.load(
+          "/animations/idle.glb",
+          (animGltf) => {
+            if (animGltf.animations && animGltf.animations.length > 0) {
+              const clip = filterAnimation(animGltf.animations[0])
+              const action = mixer.clipAction(clip)
+              action.setLoop(THREE.LoopRepeat)
+              action.play()
+            }
+          },
+          undefined,
+          (error) => console.error("Error loading animation:", error)
+        )
+      },
       undefined,
       (error) => {
         console.error("Error loading model:", error)
