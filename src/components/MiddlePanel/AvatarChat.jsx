@@ -91,7 +91,7 @@ const AvatarChat = () => {
     const loader = new GLTFLoader()
 
     loader.load(
-      "/models/SCS_female_wave.glb",
+      "/models/SCB_female.glb",
       (gltf) => {
         const model = gltf.scene
         model.position.y = -0.3 // Move the model down
@@ -138,30 +138,31 @@ model.traverse((object) => {
         })
 
         // Load idle animation
-        //loader.load(
-          //"/animations/idle.glb",
-          //(animGltf) => {
-            //if (animGltf.animations && animGltf.animations.length > 0) {
-              //const clip = filterAnimation(animGltf.animations[0])
-              //const action = mixer.clipAction(clip)
-              //action.setLoop(THREE.LoopRepeat)
-              //action.play()
-            //}
-          //},
-          //undefined,
-          //(error) => console.error("Error loading animation:", error)
-        //)
-      //},
-        if (gltf.animations && gltf.animations.length > 0) {
+        loader.load(
+          "/animations/idle.glb",
+          (animGltf) => {
+            if (animGltf.animations && animGltf.animations.length > 0) {
+              const clip = filterAnimation(animGltf.animations[0])
+              const action = mixer.clipAction(clip)
+              action.setLoop(THREE.LoopRepeat)
+              action.play()
+            }
+          },
+          undefined,
+          (error) => console.error("Error loading animation:", error)
+        )
+      },
+        //ALTERNATE CODE TO RUN A MODEL WHERE THE ANIMATION IS EMBEDDED IN GLB FILE 
+        //if (gltf.animations && gltf.animations.length > 0) {
             // Usually the main animation is at index 0
             // You can wrap this in filterAnimation(gltf.animations[0]) if you still want to filter tracks
-            const clip = gltf.animations[0]; 
-            const action = mixer.clipAction(clip);
-            action.setLoop(THREE.LoopRepeat);
-            action.play();
-        }
-      },
-      
+            //const clip = gltf.animations[0]; 
+            //const action = mixer.clipAction(clip);
+            //action.setLoop(THREE.LoopRepeat);
+            //action.play();
+        //}
+      //},
+
       undefined,
       (error) => {
         console.error("Error loading model:", error)
