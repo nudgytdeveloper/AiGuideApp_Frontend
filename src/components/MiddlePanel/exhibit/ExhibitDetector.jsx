@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux"
 import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
 import Toast from "@nrs/components/Common/Toast"
+import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPanel"
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
@@ -460,13 +461,13 @@ const ExhibitDetector = ({
         <div
           style={{
             position: "absolute",
-            top: 30,
+            top: 70,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 3,
             padding: "6px 12px",
             borderRadius: 999,
-            background: "rgba(0,0,0,0.7)",
+            background: "#7b2cbf",
             color: "#fff",
             fontSize: 16,
             fontWeight: "bold",
@@ -478,7 +479,6 @@ const ExhibitDetector = ({
           {detectedLabel}
         </div>
       )}
-
       <Webcam
         ref={webcamRef}
         audio={false}
@@ -490,6 +490,11 @@ const ExhibitDetector = ({
         ref={overlayRef}
         style={{ ...layerStyle, zIndex: 2, pointerEvents: "none" }}
       />
+      {detectedLabel && detectedLabel != "" ? (
+        <div className="detector-exhibit-info">
+          <ExhibitInfoPanel label={detectedLabel} />
+        </div>
+      ) : null}
       <Toast
         message={"Exhibit detected.\nYour location is set."}
         show={showToast}
