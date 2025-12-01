@@ -451,10 +451,9 @@
   width: 100%;
   max-width: 700px;
   height: auto;
-  min-height: 1567px;
+  min-height: 50vh;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  margin: 20px auto; 
 }
 
 /* Close button */
