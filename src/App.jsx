@@ -53,6 +53,7 @@ export default function App() {
           <TopPanel />
           <MiddlePanel />
           <BottomPanel />
+          <FeedbackModal />
         </div>
         <PopupDialog />
       </>
