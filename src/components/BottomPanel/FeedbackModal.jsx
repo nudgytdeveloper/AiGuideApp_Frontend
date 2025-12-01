@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './FeedbackModal.css';
 
 const FeedbackModal = () => {
   const [isOpen, setIsOpen] = useState(false);
