@@ -404,11 +404,10 @@
 /* end of popup css 8/
 
 /* ===== Feedback Modal ===== */
-/* The feedback button - positioned in bottom LEFT corner to avoid overlap */
 .feedback-button {
   position: fixed;
-  bottom: 80px; /* positioned above the chat box */
-  left: 20px; /* left side instead of right */
+  bottom: 80px;
+  left: 20px;
   padding: 12px 24px;
   background-color: #7b2cbf;
   color: white;
@@ -428,33 +427,31 @@
   transform: translateY(-2px);
 }
 
-/* Modal overlay - covers the entire screen */
 .feedback-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background-color: rgba(0, 0, 0, 0.6);
   z-index: 10001;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   padding: 20px;
 }
 
-/* Modal content box */
 .feedback-modal-content {
-  position: relative;
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 100%;
-  max-width: 700px;
+  max-width: 680px;
+  position: relative;
+  margin: 20px 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  padding: 0; 
 }
 
-/* Close button */
 .feedback-close-button {
   position: absolute;
   top: 10px;
@@ -468,7 +465,7 @@
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
-  z-index: 10;
+  z-index: 10002;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,7 +476,6 @@
   background: rgba(0, 0, 0, 0.8);
 }
 
-/* Responsive adjustments for feedback modal */
 @media (max-width: 768px) {
   .feedback-button {
     bottom: 70px;
@@ -490,8 +486,6 @@
 
   .feedback-modal-content {
     max-width: 95%;
-    height: 85vh;
-    max-height: 600px;
   }
 }
 
