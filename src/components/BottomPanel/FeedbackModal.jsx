@@ -31,6 +31,7 @@ const FeedbackModal = () => {
               marginHeight="0"
               marginWidth="0"
               title="Feedback Form"
+              style={{ border: 'none', overflow: 'hidden' }}
             >
               Loading…
             </iframe>

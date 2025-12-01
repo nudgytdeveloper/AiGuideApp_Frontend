@@ -450,10 +450,10 @@
   border-radius: 8px;
   width: 100%;
   max-width: 700px;
-  height: 90vh;
-  max-height: 800px;
+  height: 80vh;
+  max-height: 700px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Close button */
@@ -493,6 +493,7 @@
   .feedback-modal-content {
     max-width: 95%;
     height: 85vh;
+    max-height: 600px;
   }
 }
 
