@@ -26,7 +26,7 @@ const FeedbackModal = () => {
             <iframe
               src="https://docs.google.com/forms/d/e/1FAIpQLSev3x-THtvx_7Ys_QrIyKW2PaqoSNYkffaH63lLF2czCukIDA/viewform?embedded=true"
               width="100%"
-              height="1500"
+              height="2000"
               frameBorder="0"
               marginHeight="0"
               marginWidth="0"
