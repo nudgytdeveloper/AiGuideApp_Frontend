@@ -99,43 +99,47 @@ const AvatarChat = () => {
         modelRef.current = model
 
         animationGroup.add(model)
-model.traverse((object) => {
-          if (object.isMesh) {
-            object.castShadow = true
-            object.receiveShadow = true
-            object.material.envMapIntensity = 0.3
+        model.traverse((object) => {
+          if (object.isMesh) {
+            object.castShadow = true
+            object.receiveShadow = true
+            object.material.envMapIntensity = 0.3
 
             if (object.morphTargetDictionary && object.morphTargetInfluences) {
-
-
               // Get the indices of the ARKit "smile" blend shapes
-              const smileLeftIndex = object.morphTargetDictionary['mouthSmileLeft'];
-              const smileRightIndex = object.morphTargetDictionary['mouthSmileRight'];
-              
+              const smileLeftIndex =
+                object.morphTargetDictionary["mouthSmileLeft"]
+              const smileRightIndex =
+                object.morphTargetDictionary["mouthSmileRight"]
+
               // (Recommended) A good smile also involves the cheeks
-              const cheekPuffLeftIndex = object.morphTargetDictionary['cheekPuffLeft'];
-              const cheekPuffRightIndex = object.morphTargetDictionary['cheekPuffRight'];
+              const cheekPuffLeftIndex =
+                object.morphTargetDictionary["cheekPuffLeft"]
+              const cheekPuffRightIndex =
+                object.morphTargetDictionary["cheekPuffRight"]
 
               // Set the "default" smile value (0.0 = 0%, 1.0 = 100%)
-              const smileValue = 0.2; // A 50% smile
-              const cheekPuffValue = 0.1; // A 20% cheek puff
+              const smileValue = 0.2 // A 50% smile
+              const cheekPuffValue = 0.1 // A 20% cheek puff
 
               // Apply the values *if* the morph targets exist on the model
               if (smileLeftIndex !== undefined) {
-                object.morphTargetInfluences[smileLeftIndex] = smileValue;
+                object.morphTargetInfluences[smileLeftIndex] = smileValue
               }
               if (smileRightIndex !== undefined) {
-                object.morphTargetInfluences[smileRightIndex] = smileValue;
+                object.morphTargetInfluences[smileRightIndex] = smileValue
               }
               if (cheekPuffLeftIndex !== undefined) {
-                object.morphTargetInfluences[cheekPuffLeftIndex] = cheekPuffValue;
+                object.morphTargetInfluences[cheekPuffLeftIndex] =
+                  cheekPuffValue
               }
               if (cheekPuffRightIndex !== undefined) {
-                object.morphTargetInfluences[cheekPuffRightIndex] = cheekPuffValue;
+                object.morphTargetInfluences[cheekPuffRightIndex] =
+                  cheekPuffValue
               }
             }
-          }
-        })
+          }
+        })
 
         // Load idle animation
         loader.load(
@@ -152,15 +156,15 @@ model.traverse((object) => {
           (error) => console.error("Error loading animation:", error)
         )
       },
-        //ALTERNATE CODE TO RUN A MODEL WHERE THE ANIMATION IS EMBEDDED IN GLB FILE 
-        //if (gltf.animations && gltf.animations.length > 0) {
-            // Usually the main animation is at index 0
-            // You can wrap this in filterAnimation(gltf.animations[0]) if you still want to filter tracks
-            //const clip = gltf.animations[0]; 
-            //const action = mixer.clipAction(clip);
-            //action.setLoop(THREE.LoopRepeat);
-            //action.play();
-        //}
+      //ALTERNATE CODE TO RUN A MODEL WHERE THE ANIMATION IS EMBEDDED IN GLB FILE
+      //if (gltf.animations && gltf.animations.length > 0) {
+      // Usually the main animation is at index 0
+      // You can wrap this in filterAnimation(gltf.animations[0]) if you still want to filter tracks
+      //const clip = gltf.animations[0];
+      //const action = mixer.clipAction(clip);
+      //action.setLoop(THREE.LoopRepeat);
+      //action.play();
+      //}
       //},
 
       undefined,

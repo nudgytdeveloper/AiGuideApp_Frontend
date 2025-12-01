@@ -673,3 +673,59 @@ canvas {
     transform: translate(-50%, -50%) scale(0.9);
   }
 }
+
+/* Exhibit info panel styles.. */
+.detector-exhibit-info {
+  position: absolute;
+  bottom: 0; /* stick to bottom */
+  left: 0;
+  width: 100%;
+  color: #fff; /* white text */
+  padding: 12px 16px;
+  z-index: 20;
+
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.exhibit-info-panel {
+  padding: 12px 16px;
+  background: #7b2cbf;
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid #7b2cbf;
+  max-width: 100%;
+}
+
+.exhibit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.exhibit-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.exhibit-hall {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+}
+
+.exhibit-short {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.exhibit-long {
+  font-size: 12px;
+  color: #555;
+}
