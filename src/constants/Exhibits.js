@@ -147,13 +147,19 @@ export const EXHIBIT_LIST = [
     label: "Animal Zone",
     title: "Animal Zone",
     shortDescription:
-      "The Quantum School exhibit is designed to introduce visitors to the basic principles of quantum physics and its emerging technologies. It features complex concepts like superposition, entanglement, and quantum computing in an accessible way.",
+      "The Animal zone is a small exhibit with live animals and insects that focuses on biology and how the animals interact with their environment",
   },
   {
     label: "Bioethics",
     title: "Bioethics",
     shortDescription:
       "The Bioethics Exhibition explores ethical issues arising from current technologies like AI in healthcare, gene editing, organoid research, and biological self-experimentation. It features immersive dioramas portraying AI robotic surgeries and gene editing in human embryos.",
+  },
+  {
+    label: "Atrium",
+    title: "Atrium",
+    shortDescription:
+      "The Atrium is the central hub of the Science Centre Singapore. It features exhibits such as a smoke cannon and a Jacob's Ladder, and is the main location for the Energy Titans Show.",
   },
 ]
 
