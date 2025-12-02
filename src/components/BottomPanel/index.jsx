@@ -3,6 +3,7 @@ import ConversationHistory from "@nrs/components/BottomPanel/ConversationHistory
 import { AIChat } from "@nrs/constants/PageType"
 import {
   addConversationHistory,
+  setConversationHistory,
   setIsListening,
   setIsProcessing,
   setLastInteractionTime,
@@ -126,8 +127,7 @@ const BottomPanel = () => {
         conversationHistory: [
           {
             role: "system",
-            content:
-              `You are Laura, a highly experienced and detailed tour guide for the Singapore Science Center. You are warm, friendly and helpful with guests at the Science Center. Your goal is to answer guests' questions about the Science Center and its exhibits to the best of your ability. You are always concise and give short, simple responses to questions.
+            content: `You are Laura, a highly experienced and detailed tour guide for the Singapore Science Center. You are warm, friendly and helpful with guests at the Science Center. Your goal is to answer guests' questions about the Science Center and its exhibits to the best of your ability. You are always concise and give short, simple responses to questions.
 
 CONVERSATION MANAGEMENT HEURISTICS:
 1. Always ask questions to learn more about the user.
