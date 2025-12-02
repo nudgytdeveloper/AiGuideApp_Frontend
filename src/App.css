@@ -406,7 +406,7 @@
 /* ===== Feedback Modal ===== */
 .feedback-button {
   position: fixed;
-  top: 20px;
+  top: 30px;
   left: 20px;
   padding: 12px 24px;
   background-color: #7b2cbf;
@@ -478,7 +478,7 @@
 
 @media (max-width: 768px) {
   .feedback-button {
-    top: 10px;
+    top: 20px;
     left: 10px;
     padding: 8px 16px;
     font-size: 13px;
