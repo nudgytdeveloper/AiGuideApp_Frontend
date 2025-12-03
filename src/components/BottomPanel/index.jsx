@@ -1,6 +1,7 @@
 import micIcon from "@nrs/assets/img/mic.png"
 import ConversationHistory from "@nrs/components/BottomPanel/ConversationHistory"
-import { AIChat } from "@nrs/constants/PageType"
+import { AIChat, Navigation } from "@nrs/constants/PageType"
+import { Assistant, System, User } from "@nrs/constants/RoleType"
 import {
   addConversationHistory,
   setConversationHistory,
@@ -8,7 +9,9 @@ import {
   setIsProcessing,
   setLastInteractionTime,
 } from "@nrs/slices/chatSlice"
-import { ArrayEqual } from "@nrs/utils/common"
+import { setPageType } from "@nrs/slices/commonSlice"
+import { setDestination } from "@nrs/slices/navigationSlice"
+import { ArrayEqual, extractJson } from "@nrs/utils/common"
 import { useEffect, useRef, useState } from "react"
 import { useDispatch } from "react-redux"
 import { useSelector } from "react-redux"
@@ -56,6 +59,16 @@ const BottomPanel = () => {
     if (e.key === "Enter") {
       handleTextSubmit()
     }
+  }
+  const handleNavigateClick = (nav) => {
+    if (!nav) return
+    if (nav.confidence < 0.8) return
+
+    console.log("navigate to map and start navigation directly...")
+    dispatch(setPageType(Navigation))
+
+    console.debug("target name: ", nav.get("targetDisplayName"))
+    dispatch(setDestination(nav.get("targetDisplayName")))
   }
 
   // Initialize Speech Recognition
@@ -115,7 +128,7 @@ const BottomPanel = () => {
       })
     )
 
-    if (role === "user") {
+    if (role === User) {
       processWithLLM(content)
     }
   }
@@ -126,7 +139,7 @@ const BottomPanel = () => {
       setConversationHistory({
         conversationHistory: [
           {
-            role: "system",
+            role: System,
             content: `You are Laura, a highly experienced and detailed tour guide for the Singapore Science Center. You are warm, friendly and helpful with guests at the Science Center. Your goal is to answer guests' questions about the Science Center and its exhibits to the best of your ability. You are always concise and give short, simple responses to questions.
 
 CONVERSATION MANAGEMENT HEURISTICS:
@@ -164,7 +177,7 @@ ENGAGEMENT STRATEGIES:
           content: msg.get("content"),
         }))
         .toJS()
-      messages.push({ role: "user", content: userMessage })
+      messages.push({ role: User, content: userMessage })
       const prefix = import.meta.env.VITE_API_PREFIX
 
       const response = await fetch(`${prefix}/api/chat`, {
@@ -178,15 +191,18 @@ ENGAGEMENT STRATEGIES:
       }
 
       const data = await response.json()
-      const aiResponse =
+      const raw =
         data?.candidates?.[0]?.content?.parts
           ?.map((p) => p.text || "")
           .join("") || "(no response from model)" // Openai format: data.choices[0].message.content
+      const payload = extractJson(raw)
+      const aiResponse = payload.reply
 
       dispatch(
         addConversationHistory({
-          role: "assistant",
+          role: Assistant,
           content: aiResponse,
+          nav: payload.nav ?? null,
           timestamp: Date.now(),
         })
       )
@@ -199,7 +215,7 @@ ENGAGEMENT STRATEGIES:
         "I'm sorry, I'm having trouble connecting to my AI service right now. Can you try again?"
       dispatch(
         addConversationHistory({
-          role: "assistant",
+          role: Assistant,
           content: fallbackResponse,
           timestamp: Date.now(),
         })
@@ -290,7 +306,10 @@ ENGAGEMENT STRATEGIES:
   return (
     <>
       {selectedPageType == AIChat ? (
-        <ConversationHistory messages={conversationHistory} />
+        <ConversationHistory
+          messages={conversationHistory}
+          onNavigate={handleNavigateClick}
+        />
       ) : null}
       <footer className="chat-box">
         <div className="input-wrapper">

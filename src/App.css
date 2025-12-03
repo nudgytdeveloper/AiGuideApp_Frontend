@@ -548,6 +548,39 @@
   background-color: rgba(123, 44, 191, 0.4);
   border-radius: 3px;
 }
+/* Wrap each bubble row so we can place button next to it */
+.bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Assistant bubbles on the left */
+.bubble-row.assistant-row {
+  justify-content: flex-start;
+}
+
+/* User bubbles on the right */
+.bubble-row.user-row {
+  justify-content: flex-end;
+}
+
+/* Navigate button next to assistant bubble */
+.bubble-nav-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 999px;
+  background: black;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.bubble-nav-btn:active {
+  transform: scale(0.97);
+}
 /* live scan css code area */
 .live-scan-container {
   width: 100%;

@@ -23,3 +23,17 @@ export function useThrottle(ms = 250) {
     return false
   }
 }
+export function extractJson(text) {
+  if (!text) return null
+
+  text = text.replace(/^json\s*/i, "")
+  text = text.replace(/```json/i, "").replace(/```/g, "")
+  text = text.trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    console.error("LLM JSON parse error:", err, text)
+    return null
+  }
+}

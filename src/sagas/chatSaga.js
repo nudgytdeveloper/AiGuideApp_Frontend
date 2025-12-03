@@ -4,11 +4,12 @@ import {
   addConversationHistorySuccess,
 } from "@nrs/slices/chatSlice"
 import { fromJS } from "immutable"
+import { Assistant } from "@nrs/constants/RoleType"
 
 function* setChatHistoryFunc(action) {
   try {
     // TODO: set conversation history on firebase as well
-    const { role, content, timestamp } = action.payload
+    const { role, content, nav, timestamp } = action.payload
     const state = yield select((state) => state.chat),
       chatHistory = state.get("conversationHistory"),
       limit = window.global.maxHistoryLength
@@ -16,6 +17,7 @@ function* setChatHistoryFunc(action) {
     const newChat = fromJS({
         role,
         content,
+        nav: role == Assistant ? nav : null,
         timestamp: timestamp ?? Date.now(),
       }),
       newChatHistory = chatHistory.push(newChat)
