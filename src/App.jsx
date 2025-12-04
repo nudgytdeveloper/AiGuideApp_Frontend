@@ -4,7 +4,6 @@ import InvalidSession from "@nrs/components/InvalidSession"
 import TopPanel from "@nrs/components/TopPanel/index.jsx"
 import MiddlePanel from "@nrs/components/MiddlePanel"
 import BottomPanel from "@nrs/components/BottomPanel"
-import FeedbackModal from "@nrs/components/BottomPanel/FeedbackModal"
 import LoadingOverlay from "@nrs/components/Common/LoadingOverlay"
 import { useDispatch } from "react-redux"
 import { verifySession } from "@nrs/slices/sessionSlice"
@@ -53,7 +52,6 @@ export default function App() {
           <TopPanel />
           <MiddlePanel />
           <BottomPanel />
-          <FeedbackModal />
         </div>
         <PopupDialog />
       </>
