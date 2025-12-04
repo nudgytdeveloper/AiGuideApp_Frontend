@@ -13,12 +13,12 @@ import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPan
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.77, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
+  threshold = 0.9, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
   debug = true,
-  dispatchThreshold = 0.77, // fire Redux when prob >= 0.80
+  dispatchThreshold = 0.9, // fire Redux when prob >= 0.80
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
