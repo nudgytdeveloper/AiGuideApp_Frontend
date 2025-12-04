@@ -10,6 +10,7 @@ const MyBlueDot = () => {
   const myBlueDot = useRef(null)
   const dispatch = useDispatch(),
     canSend = useThrottle(1000)
+  // hasSetZoom = useRef(false)
 
   // Enable BlueDot once the MapView is loaded.
   useEffect(() => {
@@ -24,12 +25,12 @@ const MyBlueDot = () => {
         dispatch(setPosition(update.coordinate))
       }
 
-      if (update.coordinate) {
-        mapView.Camera.set({
-          center: update.coordinate,
-          zoomLevel: 19,
-        })
-      }
+      // if (!hasSetZoom.current) {
+      //   setTimeout(() => {
+      //     mapView.Camera.set({ zoomLevel: 19 })
+      //     hasSetZoom.current = true
+      //   }, 3000)
+      // }
     })
     blueDot.on("state-change", (state) => {
       console.debug("BlueDot state-change:", state)
@@ -40,7 +41,7 @@ const MyBlueDot = () => {
       timeout: 30000,
     })
 
-    // blueDot.follow("position-only")
+    blueDot.follow("position-only")
     // blueDot.update({
     //   accuracy: 35,
     //   floorOrFloorId: mapView.currentFloor,
