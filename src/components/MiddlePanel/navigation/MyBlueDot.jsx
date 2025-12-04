@@ -24,25 +24,24 @@ const MyBlueDot = () => {
         console.debug("@@@@ SET POSITION on redux..")
         dispatch(setPosition(update.coordinate))
       }
+
+      if (update.coordinate) {
+        mapView.Camera.set({
+          center: update.coordinate,
+          zoomLevel: 19,
+        })
+      }
     })
     blueDot.on("state-change", (state) => {
       console.debug("BlueDot state-change:", state)
     })
 
-    // blueDot.enable({
-    //   debug: true,
-    // })
-
     blueDot.enable({
       debug: true,
-      //   accuracyRing: {
-      //     color: "forestgreen",
-      //     opacity: 0.1,
-      //   },
       timeout: 30000,
     })
 
-    blueDot.follow("position-only")
+    // blueDot.follow("position-only")
     // blueDot.update({
     //   accuracy: 35,
     //   floorOrFloorId: mapView.currentFloor,

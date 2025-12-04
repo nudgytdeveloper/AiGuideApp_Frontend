@@ -67,7 +67,7 @@ const BottomPanel = () => {
     console.log("navigate to map and start navigation directly...")
     dispatch(setPageType(Navigation))
 
-    console.debug("target name: ", nav.get("targetDisplayName"))
+    console.log("target name: ", nav.get("targetDisplayName"))
     dispatch(setDestination(nav.get("targetDisplayName")))
   }
 
