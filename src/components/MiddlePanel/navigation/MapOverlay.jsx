@@ -3,14 +3,20 @@ import { useMap, Marker, useMapViewEvent } from "@mappedin/react-sdk"
 import { useSelector, useDispatch } from "react-redux"
 import { ArrayEqual } from "@nrs/utils/common"
 import { openPopUp } from "@nrs/slices/commonSlice"
-import { Success } from "@nrs/constants/PopupType"
+import { Error, Success } from "@nrs/constants/PopupType"
+import { setDestination } from "@nrs/slices/navigationSlice"
 
 const MapOverlay = () => {
   const dispatch = useDispatch()
   const { mapData, mapView } = useMap()
   const startCoordRef = useRef(null)
-  const [exhibit, position] = useSelector((state) => {
-    return [state.detection.get("exhibit"), state.navigation.get("position")]
+  const [exhibit, position, destination] = useSelector((state) => {
+    const navState = state.navigation
+    return [
+      state.detection.get("exhibit"),
+      navState.get("position"),
+      navState.get("destination"),
+    ]
   }, ArrayEqual)
 
   const spaces = useMemo(() => {
@@ -32,6 +38,62 @@ const MapOverlay = () => {
       })
     })
   }, [mapView, spaces])
+
+  useEffect(() => {
+    if (!position) return
+
+    const run = async () => {
+      console.log("here @@@...")
+
+      if (destination) {
+        const space = spaces.find((s) => s?.name?.includes(destination))
+        console.log("start position:", position)
+        console.log("dest position: ", space.center)
+        try {
+          let directions
+
+          try {
+            directions = await mapView.getDirections({
+              from: position,
+              to: space.center,
+            })
+          } catch {
+            // fallback signature
+            directions = await mapView.getDirections(position, space.center)
+          }
+
+          if (!directions) {
+            dispatch(
+              openPopUp({
+                popupType: Success,
+                message: "This space is not accessible..",
+              })
+            )
+            console.warn("No directions returned.")
+            return
+          }
+
+          mapView.Navigation.clear?.()
+          mapView.Navigation.draw(directions)
+        } catch (err) {
+          dispatch(
+            openPopUp({
+              popupType: Error,
+              message: "Error while getting directions..",
+            })
+          )
+          console.error("Error while getting directions:", err)
+        }
+      }
+    }
+    run()
+  }, [position])
+
+  useEffect(() => {
+    return () => {
+      dispatch(setDestination(null))
+    }
+  }, [])
 
   useEffect(() => {
     // console.debug("exhibit: ", exhibit)

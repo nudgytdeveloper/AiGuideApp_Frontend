@@ -19,9 +19,8 @@ const MyBlueDot = () => {
     myBlueDot.current = blueDot
 
     blueDot.on("position-update", (update) => {
-      console.debug("BlueDot position-update:", update.coordinate)
+      // console.debug("BlueDot position-update:", update.coordinate)
       if (update.coordinate && canSend) {
-        console.debug("@@@@ SET POSITION on redux..")
         dispatch(setPosition(update.coordinate))
       }
 
@@ -37,7 +36,7 @@ const MyBlueDot = () => {
     })
 
     blueDot.enable({
-      debug: true,
+      debug: false,
       timeout: 30000,
     })
 

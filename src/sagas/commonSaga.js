@@ -15,8 +15,6 @@ function* openPopupDialog({ payload }) {
       newPayload = {}
     if (popUp.findIndex((pu) => pu === payload.popupType) === -1) {
       popUp = popUp.push(payload.popupType)
-      console.debug("@@@ add pop up: ", payload)
-      console.debug("!!! msg: ", message)
       //Add more popup condition if necessary for upcoming modules
       newPayload.popUp = popUp
       newPayload.message = message
