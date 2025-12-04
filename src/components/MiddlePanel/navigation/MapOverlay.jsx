@@ -43,8 +43,6 @@ const MapOverlay = () => {
     if (!position) return
 
     const run = async () => {
-      console.log("here @@@...")
-
       if (destination) {
         const space = spaces.find((s) => s?.name?.includes(destination))
         console.log("start position:", position)
@@ -99,11 +97,7 @@ const MapOverlay = () => {
     // console.debug("exhibit: ", exhibit)
     // console.debug("position: ", position)
     // TODO: change to exibhit hall mapping in future when full dataset trained.
-    const candidate = exhibit
-      ? spaces.find((s) => s?.name?.includes("Hall B"))
-        ? spaces.find((s) => s?.name?.includes("Hall B")).center
-        : position
-      : position
+    const candidate = position
     console.debug("CANDIDATE: ", candidate)
     if (candidate) {
       startCoordRef.current = candidate

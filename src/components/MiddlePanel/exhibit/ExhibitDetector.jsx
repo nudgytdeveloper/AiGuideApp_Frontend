@@ -508,12 +508,12 @@ const ExhibitDetector = ({
           <ExhibitInfoPanel label={detectedLabel} />
         </div>
       ) : null}
-      <Toast
+      {/* <Toast
         message={"Exhibit detected.\nYour location is set."}
         show={showToast}
         duration={5000}
         onClose={handleToastClose}
-      />
+      /> */}
     </div>
   )
 }
