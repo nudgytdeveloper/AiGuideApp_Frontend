@@ -13,12 +13,12 @@ import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPan
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.7, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
+  threshold = 0.77, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
   debug = true,
-  dispatchThreshold = 0.8, // fire Redux when prob >= 0.80
+  dispatchThreshold = 0.77, // fire Redux when prob >= 0.80
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
@@ -46,6 +46,8 @@ const ExhibitDetector = ({
     preds: 0,
     error: "",
   })
+
+  const hideLabelTimerRef = useRef(null)
 
   const updateHud = useCallback((patch) => {
     hudRef.current = { ...hudRef.current, ...patch }
@@ -277,7 +279,7 @@ const ExhibitDetector = ({
             let raw = await modelRef.current.executeAsync(img)
             const mapped = normalizePredictions(raw, labelsRef.current)
             lastRef.current = { ts: performance.now(), preds: mapped }
-            updateHud({ preds: mapped.length })
+            // updateHud({ preds: mapped.length })
 
             if (mapped && mapped.length) {
               const top = mapped.reduce(
@@ -307,6 +309,11 @@ const ExhibitDetector = ({
                   if (!showToast) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
+                  if (hideLabelTimerRef.current)
+                    clearTimeout(hideLabelTimerRef.current)
+                  hideLabelTimerRef.current = setTimeout(() => {
+                    setDetectedLabel("")
+                  }, 5000) // hide after 5sec.. without detection
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
               }
@@ -336,7 +343,7 @@ const ExhibitDetector = ({
               let raw2 = await modelRef.current.executeAsync(v)
               const mapped2 = normalizePredictions(raw2, labelsRef.current)
               lastRef.current = { ts: performance.now(), preds: mapped2 }
-              updateHud({ preds: mapped2.length })
+              // updateHud({ preds: mapped2.length })
             } catch {}
           } finally {
             inflightRef.current = false
@@ -379,7 +386,7 @@ const ExhibitDetector = ({
             "14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
           ctx.fillText(`backend: ${hud.backend}`, 18, 30)
           ctx.fillText(`model:   ${hud.model}`, 18, 50)
-          ctx.fillText(`preds:   ${hud.preds}`, 18, 70)
+          // ctx.fillText(`preds:   ${hud.preds}`, 18, 70)
           if (hud.error) {
             const msg =
               hud.error.length > 42 ? hud.error.slice(0, 42) + "…" : hud.error
@@ -438,6 +445,12 @@ const ExhibitDetector = ({
     dispatch,
     showToast,
   ])
+
+  useEffect(() => {
+    return () => {
+      if (hideLabelTimerRef.current) clearTimeout(hideLabelTimerRef.current)
+    }
+  }, [])
 
   const containerStyle = {
     position: "relative",
