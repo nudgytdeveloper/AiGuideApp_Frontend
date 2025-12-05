@@ -33,7 +33,12 @@ const MyBlueDot = () => {
       // }
     })
     blueDot.on("state-change", (state) => {
-      console.debug("BlueDot state-change:", state)
+      console.log("BlueDot state-change:", state)
+    })
+
+    blueDot.on("floor-change", (floor) => {
+      console.log("Change to floor:", floor.id)
+      mapView.setFloor(floor)
     })
 
     blueDot.enable({
@@ -41,7 +46,8 @@ const MyBlueDot = () => {
       timeout: 30000,
     })
 
-    blueDot.follow("position-only")
+    // blueDot.follow("position-only")
+    blueDot.follow("floor-and-position")
     // blueDot.update({
     //   accuracy: 35,
     //   floorOrFloorId: mapView.currentFloor,
