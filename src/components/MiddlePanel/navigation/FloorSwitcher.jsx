@@ -13,7 +13,10 @@ const FloorSwitcher = () => {
 
   useEffect(() => {
     if (!mapView) return
-    const handleFloorChange = (event) => setActiveFloor(event.floor.id)
+    const handleFloorChange = (event) => {
+      mapView.setFloor(event.floor)
+      setActiveFloor(event.floor.id)
+    }
     mapView.on("floor-change", handleFloorChange)
     return () => mapView.off("floor-change", handleFloorChange)
   }, [mapView])
