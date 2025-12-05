@@ -229,12 +229,15 @@ const MapOverlay = () => {
           <div
             style={{
               borderRadius: "10px",
-              padding: "5px",
-              boxShadow: "0px 0px 1px rgba(0, 0, 0, 0.25)",
+              padding: "6px 8px",
+              boxShadow: "0px 0px 2px rgba(0, 0, 0, 0.3)",
               fontFamily: "sans-serif",
-              fontSize: "11px",
+              fontSize: "12px",
               lineHeight: 1.2,
               whiteSpace: "nowrap",
+              transform: "scale(1.15)",
+              transformOrigin: "bottom center",
+              backgroundColor: "#fff",
             }}
           >
             {space.name}
@@ -249,11 +252,13 @@ const MapOverlay = () => {
               borderRadius: "8px",
               backgroundColor: "#000",
               color: "#fff",
-              padding: "3px 5px",
+              padding: "4px 6px",
               fontFamily: "sans-serif",
-              fontSize: "10px",
+              fontSize: "11px",
               lineHeight: 1.2,
               whiteSpace: "nowrap",
+              transform: "scale(1.15)",
+              transformOrigin: "bottom center",
             }}
           >
             {poi.name}
