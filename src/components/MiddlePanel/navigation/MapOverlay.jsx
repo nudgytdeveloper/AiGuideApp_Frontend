@@ -103,13 +103,13 @@ const MapOverlay = () => {
       startCoordRef.current = candidate
       console.debug("Fixed start set at:", candidate)
     } else {
-      dispatch(
-        openPopUp({
-          popupType: Success,
-          message:
-            "Unable to resolve your location. Please ensure you are at Science Center and try again",
-        })
-      )
+      // dispatch(
+      //   openPopUp({
+      //     popupType: Success,
+      //     message:
+      //       "Unable to resolve your location. Please ensure you are at Science Center and try again",
+      //   })
+      // )
       console.warn("Could not resolve a fixed start coordinate.")
     }
   }, [exhibit, position])
