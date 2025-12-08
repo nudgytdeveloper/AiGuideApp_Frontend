@@ -167,9 +167,14 @@
 
 /* Chat Box */
 .chat-box {
+  position: relative; /* NEW: anchor mic-btn + create stacking context */
   display: flex;
   align-items: center;
   padding: 10px;
+  padding-bottom: max(
+    10px,
+    env(safe-area-inset-bottom) + 6px
+  ); /* NEW: lift above home bar */
   border-top: 1px solid #ddd;
   background: #fff;
   gap: 8px;
@@ -232,6 +237,15 @@
 /* Microphone Button */
 .mic-btn {
   all: unset;
+  position: absolute; /* NEW: float over the footer */
+  right: 16px;
+  bottom: max(
+    12px,
+    env(safe-area-inset-bottom) + 8px
+  ); /* NEW: keep clear of gesture area */
+  z-index: 20; /* NEW: above anything else */
+  pointer-events: auto; /* make sure it can receive taps */
+
   display: flex;
   align-items: center;
   justify-content: center;
