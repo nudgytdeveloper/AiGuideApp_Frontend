@@ -9,7 +9,7 @@ const MyBlueDot = () => {
   const { mapView } = useMap()
   const myBlueDot = useRef(null)
   const dispatch = useDispatch(),
-    canSend = useThrottle(1000)
+    canSend = useThrottle(2000)
   // hasSetZoom = useRef(false)
 
   // Enable BlueDot once the MapView is loaded.
@@ -24,13 +24,6 @@ const MyBlueDot = () => {
       if (update.coordinate && canSend) {
         dispatch(setPosition(update.coordinate))
       }
-
-      // if (!hasSetZoom.current) {
-      //   setTimeout(() => {
-      //     mapView.Camera.set({ zoomLevel: 19 })
-      //     hasSetZoom.current = true
-      //   }, 3000)
-      // }
     })
     blueDot.on("state-change", (state) => {
       console.log("BlueDot state-change:", state)
