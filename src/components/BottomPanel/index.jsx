@@ -41,6 +41,9 @@ const BottomPanel = () => {
   const startListening = () => {
     if (recognitionRef.current && !isListening && !isProcessing) {
       recognitionRef.current.start()
+    } else if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop()
+      dispatch(setIsListening(false))
     }
   }
 
@@ -337,11 +340,15 @@ ENGAGEMENT STRATEGIES:
         <button
           className={`mic-btn ${isListening ? "listening" : ""} ${
             isProcessing ? "processing" : ""
-          }`}
+          } ${isListening || isProcessing ? "running" : ""}`}
           onClick={startListening}
-          disabled={isListening || isProcessing}
+          disabled={isProcessing}
         >
-          <img src={micIcon} alt="Mic" />
+          {isListening ? (
+            <span className="stop-icon" />
+          ) : (
+            <img src={micIcon} alt="Mic" />
+          )}
         </button>
       </footer>
     </>

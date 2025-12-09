@@ -264,6 +264,13 @@
   transition: all 0.2s;
 }
 
+.mic-btn .stop-icon {
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 3px;
+}
+
 .mic-btn:hover:not(:disabled) {
   background: #6a24b0;
   transform: scale(1.05);
@@ -310,6 +317,11 @@
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(255, 87, 34, 0);
   }
+}
+.mic-btn.listening,
+.mic-btn.listening.running,
+.mic-btn.listening.processing {
+  background: #ff5722 !important;
 }
 /* loading CSS */
 /* Full-screen overlay */
