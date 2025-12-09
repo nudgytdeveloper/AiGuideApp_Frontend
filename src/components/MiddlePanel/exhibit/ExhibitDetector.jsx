@@ -45,7 +45,8 @@ const ExhibitDetector = ({
     aiThinkingTimerRef = useRef(null),
     aiThinkingRef = useRef(false),
     manualVlmRef = useRef(null)
-
+  const [showAskAi, setShowAskAi] = useState(false)
+  const askAiTimerRef = useRef(null)
   // VLM descriptive mode state..
   const [vlmDescription, setVlmDescription] = useState("")
   const vlmStateRef = useRef({
@@ -54,8 +55,7 @@ const ExhibitDetector = ({
     lastResult: null, // may refine to { description, possible_exhibit, certainty } if fusion detection is needed infuture..
     lastBoxCenter: null, // { x, y }
   })
-  const vlmHideTimerRef = useRef(null),
-    showAskAiButton = !detectedLabel && !aiThinking && !vlmDescription
+  const vlmHideTimerRef = useRef(null)
 
   const hudRef = useRef({
     backend: "boot",
@@ -542,7 +542,7 @@ const ExhibitDetector = ({
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
               } else if (prob >= threshold) {
-                console.log("RUNNING VLM...")
+                console.log("AUTO RUNNING VLM...")
                 const mapped = normalizePredictions(raw, labelsRef.current)
                 console.log("mapped: ", mapped)
                 //0.5 <= prob < dispatchThreshold
@@ -687,6 +687,29 @@ const ExhibitDetector = ({
   ])
 
   useEffect(() => {
+    if (askAiTimerRef.current) {
+      clearTimeout(askAiTimerRef.current)
+      askAiTimerRef.current = null
+    }
+
+    if (detectedLabel || aiThinking || vlmDescription) {
+      setShowAskAi(false)
+      return
+    }
+
+    askAiTimerRef.current = setTimeout(() => {
+      setShowAskAi(true)
+    }, 5000)
+
+    return () => {
+      if (askAiTimerRef.current) {
+        clearTimeout(askAiTimerRef.current)
+        askAiTimerRef.current = null
+      }
+    }
+  }, [detectedLabel, aiThinking, vlmDescription])
+
+  useEffect(() => {
     return () => {
       if (hideLabelTimerRef.current) clearTimeout(hideLabelTimerRef.current)
       if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current)
@@ -759,10 +782,12 @@ const ExhibitDetector = ({
           {vlmDescription}
         </div>
       )}
-      {!detectedLabel && !aiThinking && !vlmDescription && (
+      {showAskAi && (
         <div
           className="ai-thinking-pill ask-ai"
           onClick={() => {
+            setShowAskAi(false)
+            // setVlmDescription("")
             if (manualVlmRef.current) {
               manualVlmRef.current()
             }
