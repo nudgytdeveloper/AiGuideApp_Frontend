@@ -832,3 +832,26 @@ canvas {
     background-position: 0% 0%;
   }
 }
+/* ask ai button */
+.ai-thinking-pill.ask-ai {
+  pointer-events: auto; /* clickable */
+  cursor: pointer;
+  animation: fadeUp 0.25s ease-out;
+  background: #7b2cbf; /* solid purple */
+  font-weight: 600;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.ai-thinking-pill.ask-ai:active {
+  transform: translateX(-50%) scale(0.96);
+}
