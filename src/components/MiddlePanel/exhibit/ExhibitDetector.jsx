@@ -49,9 +49,10 @@ const ExhibitDetector = ({
   const vlmStateRef = useRef({
     lastCallTs: 0,
     inFlight: false,
-    lastResult: null, // { description, possible_exhibit, certainty }
+    lastResult: null, // may refine to { description, possible_exhibit, certainty } if fusion detection is needed infuture..
     lastBoxCenter: null, // { x, y }
   })
+  const vlmHideTimerRef = useRef(null)
 
   const hudRef = useRef({
     backend: "boot",
@@ -167,6 +168,11 @@ const ExhibitDetector = ({
       aiThinkingTimerRef.current = null
     }
     setAiThinkingMessage("AI is thinking…")
+    setVlmDescription("")
+    if (vlmHideTimerRef.current) {
+      clearTimeout(vlmHideTimerRef.current)
+      vlmHideTimerRef.current = null
+    }
   }
 
   // load labels
@@ -380,6 +386,14 @@ const ExhibitDetector = ({
 
           if (result.description) {
             setVlmDescription(result.description)
+
+            if (vlmHideTimerRef.current) {
+              clearTimeout(vlmHideTimerRef.current)
+            }
+            vlmHideTimerRef.current = setTimeout(() => {
+              setVlmDescription("")
+              vlmHideTimerRef.current = null
+            }, 10000) // wil hide after 10 sec if no new VLM detection
           }
 
           return result
@@ -624,6 +638,7 @@ const ExhibitDetector = ({
     return () => {
       if (hideLabelTimerRef.current) clearTimeout(hideLabelTimerRef.current)
       if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current)
+      if (vlmHideTimerRef.current) clearTimeout(vlmHideTimerRef.current)
     }
   }, [])
 
