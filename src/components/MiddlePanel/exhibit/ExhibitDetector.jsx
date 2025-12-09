@@ -39,7 +39,10 @@ const ExhibitDetector = ({
 
   const [showToast, setShowToast] = useState(false)
   const [detectedLabel, setDetectedLabel] = useState("")
-  const [aiThinking, setAiThinking] = useState(false)
+
+  const [aiThinking, setAiThinking] = useState(false),
+    [aiThinkingMessage, setAiThinkingMessage] = useState("AI is thinking…"),
+    aiThinkingTimerRef = useRef(null)
 
   // VLM descriptive mode state..
   const [vlmDescription, setVlmDescription] = useState("")
@@ -155,6 +158,15 @@ const ExhibitDetector = ({
       return out
     }
     return []
+  }
+
+  const setAIStopThinking = () => {
+    setAiThinking(false)
+    if (aiThinkingTimerRef.current) {
+      clearTimeout(aiThinkingTimerRef.current)
+      aiThinkingTimerRef.current = null
+    }
+    setAiThinkingMessage("AI is thinking…")
   }
 
   // load labels
@@ -342,6 +354,14 @@ const ExhibitDetector = ({
         state.inFlight = true
         state.lastCallTs = now
         setAiThinking(true)
+        setAiThinkingMessage("AI is thinking…")
+        if (aiThinkingTimerRef.current) {
+          clearTimeout(aiThinkingTimerRef.current)
+          aiThinkingTimerRef.current = null
+        }
+        aiThinkingTimerRef.current = setTimeout(() => {
+          setAiThinkingMessage("Analyzing the exhibit…")
+        }, 3000)
 
         try {
           const blob = await captureFrameAsBlob()
@@ -368,7 +388,7 @@ const ExhibitDetector = ({
           return null
         } finally {
           state.inFlight = false
-          setAiThinking(false)
+          setAIStopThinking()
         }
       }
 
@@ -413,7 +433,7 @@ const ExhibitDetector = ({
               const boxCenter = { x: cx, y: cy }
 
               if (prob >= dispatchThreshold) {
-                setAiThinking(false)
+                setAIStopThinking()
                 // HIGH CONF: behave as before
                 const key = String(top.tagName || "object")
                 const now = performance.now()
@@ -459,7 +479,7 @@ const ExhibitDetector = ({
                 await maybeCallVlmForDescription(prob, boxCenter)
               } else {
                 console.log("NOTHING DETECT...")
-                setAiThinking(false)
+                setAIStopThinking()
                 if (detectedLabel) {
                   setDetectedLabel("")
                   if (hideLabelTimerRef.current)
@@ -603,6 +623,7 @@ const ExhibitDetector = ({
   useEffect(() => {
     return () => {
       if (hideLabelTimerRef.current) clearTimeout(hideLabelTimerRef.current)
+      if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current)
     }
   }, [])
 
@@ -647,25 +668,7 @@ const ExhibitDetector = ({
         </div>
       )}
       {!detectedLabel && aiThinking && (
-        <div
-          style={{
-            position: "absolute",
-            top: 70,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 3,
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: "rgba(123, 44, 191, 0.8)", // same purple, translucent
-            color: "#fff",
-            fontSize: 14,
-            fontWeight: 500,
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          AI is thinking…
-        </div>
+        <div className="ai-thinking-pill">{aiThinkingMessage}</div>
       )}
       {!detectedLabel && vlmDescription && (
         <div
