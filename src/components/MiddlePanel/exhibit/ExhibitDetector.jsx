@@ -13,16 +13,16 @@ import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPan
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
   labelsUrl = "/models/sc_exhibit/labels.txt",
-  threshold = 0.8, // increased confidence trusthold as per ciel (80 - 90 is too high for detection)
+  threshold = 0.5,
   persistMs = 600,
   maxDetections = 20,
   inputSize = 320,
   debug = false,
-  dispatchThreshold = 0.9, // fire Redux when prob >= 0.80
+  dispatchThreshold = 0.9, // show label when prob >= 0.9
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
   const dispatch = useDispatch()
-  const lastEmitRef = useRef({}) // { [label]: perfNowMs. }
+  const lastEmitRef = useRef({}) // { [label]: perfNowMs }
 
   const webcamRef = useRef(null)
   const overlayRef = useRef(null)
@@ -39,6 +39,16 @@ const ExhibitDetector = ({
 
   const [showToast, setShowToast] = useState(false)
   const [detectedLabel, setDetectedLabel] = useState("")
+  const [aiThinking, setAiThinking] = useState(false)
+
+  // VLM descriptive mode state..
+  const [vlmDescription, setVlmDescription] = useState("")
+  const vlmStateRef = useRef({
+    lastCallTs: 0,
+    inFlight: false,
+    lastResult: null, // { description, possible_exhibit, certainty }
+    lastBoxCenter: null, // { x, y }
+  })
 
   const hudRef = useRef({
     backend: "boot",
@@ -147,6 +157,7 @@ const ExhibitDetector = ({
     return []
   }
 
+  // load labels
   useEffect(() => {
     let ignore = false
     const go = async () => {
@@ -163,7 +174,9 @@ const ExhibitDetector = ({
           setLabels(arr)
           labelsRef.current = arr
         }
-      } catch {}
+      } catch (e) {
+        console.error(e)
+      }
     }
     go()
     return () => {
@@ -181,12 +194,23 @@ const ExhibitDetector = ({
       return base.replace(/\/+$/, "") + "/" + u.replace(/^\/+/, "")
     }
 
+    // VLM throttling parameters
+    const MIN_VLM_INTERVAL_MS = 5000
+    const MAX_VLM_CACHE_AGE_MS = 15000
+    const CAMERA_MOVE_THRESHOLD_PX = 40
+
+    const cameraMovedSignificantly = (lastCenter, newCenter, thresholdPx) => {
+      if (!lastCenter || !newCenter) return true
+      const dx = newCenter.x - lastCenter.x
+      const dy = newCenter.y - lastCenter.y
+      return dx * dx + dy * dy > thresholdPx * thresholdPx
+    }
+
     const start = async () => {
       if (startedRef.current) return
       startedRef.current = true
       activeRef.current = true
 
-      // backend info
       updateHud({ backend: tf.getBackend() })
 
       const resolvedModelUrl = resolveUrl(modelUrl)
@@ -216,7 +240,7 @@ const ExhibitDetector = ({
         return
       }
 
-      // Load model
+      // load model
       try {
         objectModel = new cvstfjs.ObjectDetectionModel()
         await objectModel.loadModelAsync(resolvedModelUrl)
@@ -230,7 +254,7 @@ const ExhibitDetector = ({
         return
       }
 
-      // Wait for webcam video metadata
+      // wait for webcam metadata
       const video = webcamRef.current?.video
       if (!video) return
       await new Promise((resolve) => {
@@ -241,7 +265,6 @@ const ExhibitDetector = ({
           onLoadedMeta = () => resolve()
           video.onloadedmetadata = onLoadedMeta
         }
-        // last-resort timeout
         setTimeout(resolve, 2000)
       })
 
@@ -257,6 +280,97 @@ const ExhibitDetector = ({
         })
       }
       const sctx = scratchCtxRef.current
+
+      // capture frame from scratch canvas as JPEG blob
+      const captureFrameAsBlob = () =>
+        new Promise((resolve, reject) => {
+          try {
+            sc.toBlob(
+              (blob) => {
+                if (!blob) return reject(new Error("Failed to capture frame"))
+                resolve(blob)
+              },
+              "image/jpeg",
+              0.9
+            )
+          } catch (e) {
+            reject(e)
+          }
+        })
+
+      // call VLM endpoint
+      const callVlmApi = async (blob) => {
+        const formData = new FormData()
+        formData.append("image", blob, "frame.jpg")
+        // if backend already has descriptive prompt as default, we don't need prompt here
+        const prefix = import.meta.env.VITE_API_PREFIX
+        const res = await fetch(`${prefix}/api/analyze-frame`, {
+          method: "POST",
+          body: formData,
+        })
+        if (res.error) {
+          throw new Error(`VLM Error HTTP ${res.status}`)
+        }
+        const data = await res.json()
+        return data.result // expected to be JSON string
+      }
+
+      // maybe call VLM for description (gray zone only)
+      const maybeCallVlmForDescription = async (pCV, boxCenter) => {
+        if (!activeRef.current) return null
+        if (pCV < threshold || pCV >= dispatchThreshold) return null
+
+        const now = performance.now()
+        const state = vlmStateRef.current
+
+        // reuse cached result if recent and camera hasn't moved much
+        if (
+          state.lastResult &&
+          now - state.lastCallTs < MAX_VLM_CACHE_AGE_MS &&
+          !cameraMovedSignificantly(
+            state.lastBoxCenter,
+            boxCenter,
+            CAMERA_MOVE_THRESHOLD_PX
+          )
+        ) {
+          return state.lastResult
+        }
+
+        if (state.inFlight) return null
+        if (now - state.lastCallTs < MIN_VLM_INTERVAL_MS) return null
+
+        state.inFlight = true
+        state.lastCallTs = now
+        setAiThinking(true)
+
+        try {
+          const blob = await captureFrameAsBlob()
+          const rawText = await callVlmApi(blob)
+          let description = typeof rawText === "string" ? rawText : ""
+
+          // strip simple markdown **bold**
+          description = description.replace(/\*\*(.*?)\*\*/g, "$1")
+
+          const result = {
+            description,
+          }
+
+          state.lastResult = result
+          state.lastBoxCenter = boxCenter
+
+          if (result.description) {
+            setVlmDescription(result.description)
+          }
+
+          return result
+        } catch (e) {
+          console.error("VLM descriptive error:", e)
+          return null
+        } finally {
+          state.inFlight = false
+          setAiThinking(false)
+        }
+      }
 
       const tick = async () => {
         if (!activeRef.current) return
@@ -279,7 +393,6 @@ const ExhibitDetector = ({
             let raw = await modelRef.current.executeAsync(img)
             const mapped = normalizePredictions(raw, labelsRef.current)
             lastRef.current = { ts: performance.now(), preds: mapped }
-            // updateHud({ preds: mapped.length })
 
             if (mapped && mapped.length) {
               const top = mapped.reduce(
@@ -287,25 +400,41 @@ const ExhibitDetector = ({
                   cur.probability > best.probability ? cur : best,
                 mapped[0]
               )
-              if (top.probability >= dispatchThreshold) {
+              const prob = Number(top.probability || 0)
+
+              const bb = top.boundingBox || {
+                left: 0,
+                top: 0,
+                width: 0,
+                height: 0,
+              }
+              const cx = lb.dx + Math.round((bb.left + bb.width / 2) * lb.drawW)
+              const cy = lb.dy + Math.round((bb.top + bb.height / 2) * lb.drawH)
+              const boxCenter = { x: cx, y: cy }
+
+              if (prob >= dispatchThreshold) {
+                setAiThinking(false)
+                // HIGH CONF: behave as before
                 const key = String(top.tagName || "object")
                 const now = performance.now()
                 const last = lastEmitRef.current[key] || 0
                 if (now - last >= minDispatchIntervalMs) {
                   const payload = {
                     label: key,
-                    confidence: Number(top.probability),
+                    confidence: prob,
                     bbox: {
-                      left: Number(top.boundingBox?.left || 0),
-                      top: Number(top.boundingBox?.top || 0),
-                      width: Number(top.boundingBox?.width || 0),
-                      height: Number(top.boundingBox?.height || 0),
+                      left: Number(bb.left || 0),
+                      top: Number(bb.top || 0),
+                      width: Number(bb.width || 0),
+                      height: Number(bb.height || 0),
                     },
                     at: Date.now(),
                     source: "camera",
                   }
 
-                  setDetectedLabel(`${payload.label}`)
+                  // strong CV detection: clear any VLM text
+                  setVlmDescription("")
+                  setDetectedLabel(payload.label)
                   if (!showToast) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
@@ -313,15 +442,38 @@ const ExhibitDetector = ({
                     clearTimeout(hideLabelTimerRef.current)
                   hideLabelTimerRef.current = setTimeout(() => {
                     setDetectedLabel("")
-                  }, 5000) // hide after 5sec.. without detection
+                  }, 5000)
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
+                }
+              } else if (prob >= threshold) {
+                console.log("RUNNING VLM...")
+                const mapped = normalizePredictions(raw, labelsRef.current)
+                console.log("mapped: ", mapped)
+                //0.5 <= prob < dispatchThreshold
+                // no exhibit label; instead call VLM to describe
+                if (detectedLabel) {
+                  setDetectedLabel("")
+                  if (hideLabelTimerRef.current)
+                    clearTimeout(hideLabelTimerRef.current)
+                }
+                await maybeCallVlmForDescription(prob, boxCenter)
+              } else {
+                console.log("NOTHING DETECT...")
+                setAiThinking(false)
+                if (detectedLabel) {
+                  setDetectedLabel("")
+                  if (hideLabelTimerRef.current)
+                    clearTimeout(hideLabelTimerRef.current)
+                }
+                if (vlmDescription) {
+                  setVlmDescription("")
                 }
               }
             }
 
             if (debug) {
-              const vw = v.videoWidth || 0,
-                vh = v.videoHeight || 0
+              const vw = v.videoWidth || 0
+              const vh = v.videoHeight || 0
               console.debug(
                 "[prod-debug] video:",
                 vw,
@@ -343,8 +495,9 @@ const ExhibitDetector = ({
               let raw2 = await modelRef.current.executeAsync(v)
               const mapped2 = normalizePredictions(raw2, labelsRef.current)
               lastRef.current = { ts: performance.now(), preds: mapped2 }
-              // updateHud({ preds: mapped2.length })
-            } catch {}
+            } catch (e2) {
+              console.error(e2)
+            }
           } finally {
             inflightRef.current = false
           }
@@ -386,7 +539,6 @@ const ExhibitDetector = ({
             "14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
           ctx.fillText(`backend: ${hud.backend}`, 18, 30)
           ctx.fillText(`model:   ${hud.model}`, 18, 50)
-          // ctx.fillText(`preds:   ${hud.preds}`, 18, 70)
           if (hud.error) {
             const msg =
               hud.error.length > 42 ? hud.error.slice(0, 42) + "…" : hud.error
@@ -426,7 +578,7 @@ const ExhibitDetector = ({
         try {
           scratchRef.current.width = 0
           scratchRef.current.height = 0
-        } catch {}
+        } catch (e) {}
       }
       scratchCtxRef.current = null
       scratchRef.current = null
@@ -444,6 +596,8 @@ const ExhibitDetector = ({
     updateHud,
     dispatch,
     showToast,
+    vlmDescription,
+    detectedLabel,
   ])
 
   useEffect(() => {
@@ -492,6 +646,50 @@ const ExhibitDetector = ({
           {detectedLabel}
         </div>
       )}
+      {!detectedLabel && aiThinking && (
+        <div
+          style={{
+            position: "absolute",
+            top: 70,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "rgba(123, 44, 191, 0.8)", // same purple, translucent
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 500,
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          AI is thinking…
+        </div>
+      )}
+      {!detectedLabel && vlmDescription && (
+        <div
+          style={{
+            position: "absolute",
+            top: 70,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            padding: "8px 14px",
+            borderRadius: 16,
+            background: "rgba(0,0,0,0.6)",
+            color: "#fff",
+            fontSize: 14,
+            maxWidth: "80%",
+            whiteSpace: "normal",
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          {vlmDescription}
+        </div>
+      )}
+
       <Webcam
         ref={webcamRef}
         audio={false}
@@ -503,7 +701,8 @@ const ExhibitDetector = ({
         ref={overlayRef}
         style={{ ...layerStyle, zIndex: 2, pointerEvents: "none" }}
       />
-      {detectedLabel && detectedLabel != "" ? (
+      {/* ExhibitInfoPanel only when strong CV label */}
+      {detectedLabel && detectedLabel !== "" ? (
         <div className="detector-exhibit-info">
           <ExhibitInfoPanel label={detectedLabel} />
         </div>
