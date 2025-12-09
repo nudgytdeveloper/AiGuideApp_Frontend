@@ -43,6 +43,7 @@ const ExhibitDetector = ({
   const [aiThinking, setAiThinking] = useState(false),
     [aiThinkingMessage, setAiThinkingMessage] = useState("AI is thinking…"),
     aiThinkingTimerRef = useRef(null),
+    aiThinkingRef = useRef(false),
     manualVlmRef = useRef(null)
 
   // VLM descriptive mode state..
@@ -165,6 +166,7 @@ const ExhibitDetector = ({
 
   const setAIStopThinking = () => {
     setAiThinking(false)
+    aiThinkingRef.current = false
     if (aiThinkingTimerRef.current) {
       clearTimeout(aiThinkingTimerRef.current)
       aiThinkingTimerRef.current = null
@@ -334,7 +336,6 @@ const ExhibitDetector = ({
       const maybeCallVlmForDescription = async (pCV, boxCenter) => {
         if (!activeRef.current) return null
 
-        // AUTO only: only run in gray zone
         if (pCV < threshold || pCV >= dispatchThreshold) {
           return null
         }
@@ -342,7 +343,6 @@ const ExhibitDetector = ({
         const now = performance.now()
         const state = vlmStateRef.current
 
-        // cache reuse (auto)
         if (
           state.lastResult &&
           now - state.lastCallTs < MAX_VLM_CACHE_AGE_MS &&
@@ -362,6 +362,7 @@ const ExhibitDetector = ({
         state.lastCallTs = now
         setAiThinking(true)
         setAiThinkingMessage("AI is thinking…")
+        aiThinkingRef.current = true
         if (aiThinkingTimerRef.current) {
           clearTimeout(aiThinkingTimerRef.current)
           aiThinkingTimerRef.current = null
@@ -402,22 +403,18 @@ const ExhibitDetector = ({
         }
       }
 
-      // MANUAL Ask AI – always run when user taps
+      // Ask AI - Manual function
       manualVlmRef.current = async () => {
         if (!activeRef.current) return
         const state = vlmStateRef.current
-
-        if (state.inFlight) {
-          // already running; ignore double-tap
-          return
-        }
-
+        if (state.inFlight) return
         state.inFlight = true
         state.lastCallTs = performance.now()
         state.lastBoxCenter = null // manual, no specific box
 
         setAiThinking(true)
         setAiThinkingMessage("AI is thinking…")
+        aiThinkingRef.current = true
         if (aiThinkingTimerRef.current) {
           clearTimeout(aiThinkingTimerRef.current)
           aiThinkingTimerRef.current = null
@@ -425,6 +422,11 @@ const ExhibitDetector = ({
         aiThinkingTimerRef.current = setTimeout(() => {
           setAiThinkingMessage("Analyzing the exhibit…")
         }, 3000)
+        //  yield to the browser  to render pill first..
+        await new Promise((resolve) => {
+          // either rAF or setTimeout(0) – rAF is nicer for animation usuall
+          requestAnimationFrame(() => resolve())
+        })
 
         try {
           const blob = await captureFrameAsBlob()
@@ -471,7 +473,11 @@ const ExhibitDetector = ({
         // draw webcam → offscreen square
         sctx.drawImage(v, 0, 0, inputSize, inputSize)
 
-        if (!inflightRef.current && modelRef.current) {
+        if (
+          !inflightRef.current &&
+          modelRef.current &&
+          !aiThinkingRef.current
+        ) {
           inflightRef.current = true
           try {
             const img = sctx.getImageData(0, 0, inputSize, inputSize)
@@ -757,7 +763,6 @@ const ExhibitDetector = ({
         <div
           className="ai-thinking-pill ask-ai"
           onClick={() => {
-            console.log("CLICKED ASK BTN")
             if (manualVlmRef.current) {
               manualVlmRef.current()
             }
