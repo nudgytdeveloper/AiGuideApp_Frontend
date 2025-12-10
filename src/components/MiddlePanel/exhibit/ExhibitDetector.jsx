@@ -90,7 +90,7 @@ const ExhibitDetector = ({
   })
 
   const hideLabelTimerRef = useRef(null)
-
+  const lockedUntilRef = useRef(0)
   const updateHud = useCallback((patch) => {
     hudRef.current = { ...hudRef.current, ...patch }
   }, [])
@@ -378,6 +378,7 @@ const ExhibitDetector = ({
                   setDetectedLabel(payload.label)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
+                  lockedUntilRef.current = now + 5000
                   if (hideLabelTimerRef.current)
                     clearTimeout(hideLabelTimerRef.current)
                   hideLabelTimerRef.current = setTimeout(() => {
@@ -386,20 +387,22 @@ const ExhibitDetector = ({
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
               } else if (prob >= threshold) {
-                // no exhibit label; instead call VLM to describe
-                if (detectedLabelRef.current) {
-                  setDetectedLabel("")
-                  if (hideLabelTimerRef.current)
-                    clearTimeout(hideLabelTimerRef.current)
-                }
-
-                const captureFn = captureFrameFnRef.current
-                if (captureFn) {
-                  await describeAuto({
-                    prob,
-                    boxCenter,
-                    captureFrameAsBlob: captureFn,
-                  })
+                const now = performance.now() // if still within 5s after last strong detection -> keep label, skip VLM
+                if (now > lockedUntilRef.current) {
+                  if (detectedLabelRef.current) {
+                    // no exhibit label; instead call VLM to describe
+                    setDetectedLabel("")
+                    if (hideLabelTimerRef.current)
+                      clearTimeout(hideLabelTimerRef.current)
+                  }
+                  const captureFn = captureFrameFnRef.current
+                  if (captureFn) {
+                    await describeAuto({
+                      prob,
+                      boxCenter,
+                      captureFrameAsBlob: captureFn,
+                    })
+                  }
                 }
               }
             }
@@ -542,7 +545,6 @@ const ExhibitDetector = ({
       if (askAiPulseTimerRef.current) clearInterval(askAiPulseTimerRef.current)
     }
   }, [detectedLabel, aiThinking, vlmDescription])
-
   // cleanup for label timer only (VLM timers are handled inside hook)
   useEffect(() => {
     return () => {
@@ -616,7 +618,6 @@ const ExhibitDetector = ({
           Ask AI
         </div>
       )}
-
       <Webcam
         ref={webcamRef}
         audio={false}
@@ -636,5 +637,4 @@ const ExhibitDetector = ({
     </div>
   )
 }
-
 export default ExhibitDetector
