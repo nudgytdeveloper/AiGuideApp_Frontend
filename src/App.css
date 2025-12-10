@@ -237,25 +237,20 @@
 /* Microphone Button */
 .mic-btn {
   all: unset;
-  position: absolute; /* NEW: float over the footer */
+  position: absolute;
   right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 20; /* NEW: above anything else */
-  pointer-events: auto; /* make sure it can receive taps */
-
+  top: calc(50% - 16px);
+  z-index: 20;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 32px !important;
   height: 32px !important;
   flex: 0 0 32px !important;
-
   padding: 0 !important;
   margin: 0 !important;
   box-sizing: border-box;
-
   background: #7b2cbf;
   border-radius: 50%;
   cursor: pointer;
