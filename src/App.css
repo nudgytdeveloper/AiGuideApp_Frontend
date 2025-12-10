@@ -202,7 +202,7 @@
 
 .send-btn {
   position: absolute;
-  right: 8px;
+  right: 48px;
   top: 50%;
   transform: translateY(-50%);
   width: 30px !important;
@@ -239,10 +239,8 @@
   all: unset;
   position: absolute; /* NEW: float over the footer */
   right: 16px;
-  bottom: max(
-    12px,
-    env(safe-area-inset-bottom) + 8px
-  ); /* NEW: keep clear of gesture area */
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 20; /* NEW: above anything else */
   pointer-events: auto; /* make sure it can receive taps */
 
