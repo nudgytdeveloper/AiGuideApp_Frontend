@@ -9,6 +9,23 @@ import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
 import Toast from "@nrs/components/Common/Toast"
 import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPanel"
+// static styles put ourside detector.. so.. no new objects on each render
+const containerStyle = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  background: "#000",
+  overflow: "hidden",
+  borderRadius: 12,
+}
+
+const layerStyle = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "contain",
+}
 
 const ExhibitDetector = ({
   modelUrl = "/models/sc_exhibit/model.json",
@@ -21,30 +38,33 @@ const ExhibitDetector = ({
   dispatchThreshold = 0.9, // show label when prob >= 0.9
   minDispatchIntervalMs = 10000, // throttle per label to avoid spamming
 }) => {
-  const dispatch = useDispatch()
-  const lastEmitRef = useRef({}) // { [label]: perfNowMs }
-
-  const webcamRef = useRef(null)
-  const overlayRef = useRef(null)
-
+  const dispatch = useDispatch(),
+    lastEmitRef = useRef({}) // { [label]: perfNowMs }
+  // instance related state
+  const webcamRef = useRef(null),
+    overlayRef = useRef(null)
+  // status related state
   const startedRef = useRef(false)
   const rafRef = useRef(null)
   const inflightRef = useRef(false)
   const activeRef = useRef(true)
-
+  // machine vision related state
   const modelRef = useRef(null)
   const [labels, setLabels] = useState([])
   const labelsRef = useRef([])
   const lastRef = useRef({ ts: 0, preds: [] })
-
+  // machine vision UI related state
   const [showToast, setShowToast] = useState(false)
   const [detectedLabel, setDetectedLabel] = useState("")
-
+  const showToastRef = useRef(showToast)
+  const detectedLabelRef = useRef(detectedLabel)
+  // ask ai - ai thinking state
   const [aiThinking, setAiThinking] = useState(false),
     [aiThinkingMessage, setAiThinkingMessage] = useState("AI is thinking…"),
     aiThinkingTimerRef = useRef(null),
     aiThinkingRef = useRef(false),
     manualVlmRef = useRef(null)
+  // ask ai UI / animation state
   const [showAskAi, setShowAskAi] = useState(false)
   const askAiTimerRef = useRef(null)
   const [askAiPulse, setAskAiPulse] = useState(false)
@@ -55,7 +75,7 @@ const ExhibitDetector = ({
   const vlmStateRef = useRef({
     lastCallTs: 0,
     inFlight: false,
-    lastResult: null, // may refine to { description, possible_exhibit, certainty } if fusion detection is needed infuture..
+    lastResult: null, // may refine later
     lastBoxCenter: null, // { x, y }
   })
   const vlmHideTimerRef = useRef(null)
@@ -177,6 +197,13 @@ const ExhibitDetector = ({
     setAiThinkingMessage("AI is thinking…")
   }
 
+  useEffect(() => {
+    showToastRef.current = showToast
+  }, [showToast])
+
+  useEffect(() => {
+    detectedLabelRef.current = detectedLabel
+  }, [detectedLabel])
   // load labels
   useEffect(() => {
     let ignore = false
@@ -204,6 +231,7 @@ const ExhibitDetector = ({
     }
   }, [labelsUrl])
 
+  // Heavy detection / VLM loop
   useEffect(() => {
     let objectModel
     let onLoadedMeta = null
@@ -213,7 +241,6 @@ const ExhibitDetector = ({
       const base = "/"
       return base.replace(/\/+$/, "") + "/" + u.replace(/^\/+/, "")
     }
-
     // VLM throttling parameters
     const MIN_VLM_INTERVAL_MS = 5000
     const MAX_VLM_CACHE_AGE_MS = 15000
@@ -322,7 +349,6 @@ const ExhibitDetector = ({
       const callVlmApi = async (blob) => {
         const formData = new FormData()
         formData.append("image", blob, "frame.jpg")
-        // if backend already has descriptive prompt as default, we don't need prompt here
         const prefix = import.meta.env.VITE_API_PREFIX
         const res = await fetch(`${prefix}/api/analyze-frame`, {
           method: "POST",
@@ -425,9 +451,8 @@ const ExhibitDetector = ({
         aiThinkingTimerRef.current = setTimeout(() => {
           setAiThinkingMessage("Analyzing the exhibit…")
         }, 3000)
-        //  yield to the browser  to render pill first..
+        // give manual VLM one frame to breathe (priotise UI first)
         await new Promise((resolve) => {
-          // either rAF or setTimeout(0) – rAF is nicer for animation usuall
           requestAnimationFrame(() => resolve())
         })
 
@@ -513,7 +538,6 @@ const ExhibitDetector = ({
                   clearTimeout(vlmHideTimerRef.current)
                   vlmHideTimerRef.current = null
                 }
-                // HIGH CONF: behave as before
                 const key = String(top.tagName || "object")
                 const now = performance.now()
                 const last = lastEmitRef.current[key] || 0
@@ -530,11 +554,9 @@ const ExhibitDetector = ({
                     at: Date.now(),
                     source: "camera",
                   }
-
-                  // strong CV detection: clear any VLM text
                   setVlmDescription("")
                   setDetectedLabel(payload.label)
-                  if (!showToast) setShowToast(true)
+                  if (!showToastRef.current) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
                   if (hideLabelTimerRef.current)
@@ -545,12 +567,8 @@ const ExhibitDetector = ({
                   if (debug) console.log("[dispatch] mergeExhibit", payload)
                 }
               } else if (prob >= threshold) {
-                console.log("AUTO RUNNING VLM...")
-                const mapped = normalizePredictions(raw, labelsRef.current)
-                console.log("mapped: ", mapped)
-                //0.5 <= prob < dispatchThreshold
                 // no exhibit label; instead call VLM to describe
-                if (detectedLabel) {
+                if (detectedLabelRef.current) {
                   setDetectedLabel("")
                   if (hideLabelTimerRef.current)
                     clearTimeout(hideLabelTimerRef.current)
@@ -674,7 +692,6 @@ const ExhibitDetector = ({
     }
   }, [
     modelUrl,
-    labels,
     threshold,
     persistMs,
     maxDetections,
@@ -684,9 +701,6 @@ const ExhibitDetector = ({
     minDispatchIntervalMs,
     updateHud,
     dispatch,
-    showToast,
-    vlmDescription,
-    detectedLabel,
   ])
 
   useEffect(() => {
@@ -730,22 +744,6 @@ const ExhibitDetector = ({
       if (vlmHideTimerRef.current) clearTimeout(vlmHideTimerRef.current)
     }
   }, [])
-
-  const containerStyle = {
-    position: "relative",
-    width: "100%",
-    height: "100%",
-    background: "#000",
-    overflow: "hidden",
-    borderRadius: 12,
-  }
-  const layerStyle = {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "contain",
-  }
 
   return (
     <div style={containerStyle}>
@@ -822,7 +820,6 @@ const ExhibitDetector = ({
         ref={overlayRef}
         style={{ ...layerStyle, zIndex: 2, pointerEvents: "none" }}
       />
-      {/* ExhibitInfoPanel only when strong CV label */}
       {detectedLabel && detectedLabel !== "" ? (
         <div className="detector-exhibit-info">
           <ExhibitInfoPanel label={detectedLabel} />
