@@ -5,6 +5,7 @@ import {
 } from "@nrs/slices/chatSlice"
 import { fromJS } from "immutable"
 import { Assistant } from "@nrs/constants/RoleType"
+import { List } from "immutable"
 
 function* setChatHistoryFunc(action) {
   try {
