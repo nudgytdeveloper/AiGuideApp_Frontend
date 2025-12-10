@@ -9,6 +9,7 @@ import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
 import Toast from "@nrs/components/Common/Toast"
 import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPanel"
+import { useVlmDescription } from "@nrs/hooks/useVlmDescription" // adjust path
 // static styles put ourside detector.. so.. no new objects on each render
 const containerStyle = {
   position: "relative",
@@ -41,8 +42,9 @@ const ExhibitDetector = ({
   const dispatch = useDispatch(),
     lastEmitRef = useRef({}) // { [label]: perfNowMs }
   // instance related state
-  const webcamRef = useRef(null),
-    overlayRef = useRef(null)
+  const webcamRef = useRef(null)
+  const overlayRef = useRef(null)
+  const captureFrameFnRef = useRef(null) // for VLM hook
   // status related state
   const startedRef = useRef(false)
   const rafRef = useRef(null)
@@ -58,27 +60,34 @@ const ExhibitDetector = ({
   const [detectedLabel, setDetectedLabel] = useState("")
   const showToastRef = useRef(showToast)
   const detectedLabelRef = useRef(detectedLabel)
-  // ask ai - ai thinking state
-  const [aiThinking, setAiThinking] = useState(false),
-    [aiThinkingMessage, setAiThinkingMessage] = useState("AI is thinking…"),
-    aiThinkingTimerRef = useRef(null),
-    aiThinkingRef = useRef(false),
-    manualVlmRef = useRef(null)
+
+  useEffect(() => {
+    showToastRef.current = showToast
+  }, [showToast])
+
+  useEffect(() => {
+    detectedLabelRef.current = detectedLabel
+  }, [detectedLabel])
+  // previously its ask ai - ai thinking state & VLM descriptive mode state., now i change to VLM hook since used custom hook
+  const {
+    aiThinking,
+    aiThinkingMessage,
+    vlmDescription,
+    setVlmDescription,
+    describeAuto,
+    describeManual,
+    setAIStopThinking,
+    aiThinkingRef,
+  } = useVlmDescription({
+    threshold,
+    dispatchThreshold,
+  })
   // ask ai UI / animation state
   const [showAskAi, setShowAskAi] = useState(false)
   const askAiTimerRef = useRef(null)
   const [askAiPulse, setAskAiPulse] = useState(false)
   const askAiPulseTimerRef = useRef(null)
   const askAiShownAtRef = useRef(0)
-  // VLM descriptive mode state..
-  const [vlmDescription, setVlmDescription] = useState("")
-  const vlmStateRef = useRef({
-    lastCallTs: 0,
-    inFlight: false,
-    lastResult: null, // may refine later
-    lastBoxCenter: null, // { x, y }
-  })
-  const vlmHideTimerRef = useRef(null)
 
   const hudRef = useRef({
     backend: "boot",
@@ -187,23 +196,6 @@ const ExhibitDetector = ({
     return []
   }
 
-  const setAIStopThinking = () => {
-    setAiThinking(false)
-    aiThinkingRef.current = false
-    if (aiThinkingTimerRef.current) {
-      clearTimeout(aiThinkingTimerRef.current)
-      aiThinkingTimerRef.current = null
-    }
-    setAiThinkingMessage("AI is thinking…")
-  }
-
-  useEffect(() => {
-    showToastRef.current = showToast
-  }, [showToast])
-
-  useEffect(() => {
-    detectedLabelRef.current = detectedLabel
-  }, [detectedLabel])
   // load labels
   useEffect(() => {
     let ignore = false
@@ -231,7 +223,7 @@ const ExhibitDetector = ({
     }
   }, [labelsUrl])
 
-  // Heavy detection / VLM loop
+  // main detection + VLM loop
   useEffect(() => {
     let objectModel
     let onLoadedMeta = null
@@ -240,17 +232,6 @@ const ExhibitDetector = ({
       if (/^https?:\/\//i.test(u)) return u
       const base = "/"
       return base.replace(/\/+$/, "") + "/" + u.replace(/^\/+/, "")
-    }
-    // VLM throttling parameters
-    const MIN_VLM_INTERVAL_MS = 5000
-    const MAX_VLM_CACHE_AGE_MS = 15000
-    const CAMERA_MOVE_THRESHOLD_PX = 40
-
-    const cameraMovedSignificantly = (lastCenter, newCenter, thresholdPx) => {
-      if (!lastCenter || !newCenter) return true
-      const dx = newCenter.x - lastCenter.x
-      const dy = newCenter.y - lastCenter.y
-      return dx * dx + dy * dy > thresholdPx * thresholdPx
     }
 
     const start = async () => {
@@ -345,147 +326,8 @@ const ExhibitDetector = ({
           }
         })
 
-      // call VLM endpoint
-      const callVlmApi = async (blob) => {
-        const formData = new FormData()
-        formData.append("image", blob, "frame.jpg")
-        const prefix = import.meta.env.VITE_API_PREFIX
-        const res = await fetch(`${prefix}/api/analyze-frame`, {
-          method: "POST",
-          body: formData,
-        })
-        if (res.error) {
-          throw new Error(`VLM Error HTTP ${res.status}`)
-        }
-        const data = await res.json()
-        return data.result // expected to be JSON string
-      }
-
-      // maybe call VLM for description (AUTO gray zone only)
-      const maybeCallVlmForDescription = async (pCV, boxCenter) => {
-        if (!activeRef.current) return null
-
-        if (pCV < threshold || pCV >= dispatchThreshold) {
-          return null
-        }
-
-        const now = performance.now()
-        const state = vlmStateRef.current
-
-        if (
-          state.lastResult &&
-          now - state.lastCallTs < MAX_VLM_CACHE_AGE_MS &&
-          !cameraMovedSignificantly(
-            state.lastBoxCenter,
-            boxCenter,
-            CAMERA_MOVE_THRESHOLD_PX
-          )
-        ) {
-          return state.lastResult
-        }
-
-        if (state.inFlight) return null
-        if (now - state.lastCallTs < MIN_VLM_INTERVAL_MS) return null
-
-        state.inFlight = true
-        state.lastCallTs = now
-        setAiThinking(true)
-        setAiThinkingMessage("AI is thinking…")
-        aiThinkingRef.current = true
-        if (aiThinkingTimerRef.current) {
-          clearTimeout(aiThinkingTimerRef.current)
-          aiThinkingTimerRef.current = null
-        }
-        aiThinkingTimerRef.current = setTimeout(() => {
-          setAiThinkingMessage("Analyzing the exhibit…")
-        }, 3000)
-
-        try {
-          const blob = await captureFrameAsBlob()
-          const rawText = await callVlmApi(blob)
-          let description = typeof rawText === "string" ? rawText : ""
-          description = description.replace(/\*\*(.*?)\*\*/g, "$1")
-
-          const result = { description }
-          state.lastResult = result
-          state.lastBoxCenter = boxCenter
-
-          if (result.description) {
-            setVlmDescription(result.description)
-
-            if (vlmHideTimerRef.current) {
-              clearTimeout(vlmHideTimerRef.current)
-            }
-            vlmHideTimerRef.current = setTimeout(() => {
-              setVlmDescription("")
-              vlmHideTimerRef.current = null
-            }, 10000)
-          }
-
-          return result
-        } catch (e) {
-          console.error("VLM descriptive error:", e)
-          return null
-        } finally {
-          state.inFlight = false
-          setAIStopThinking()
-        }
-      }
-
-      // Ask AI - Manual function
-      manualVlmRef.current = async () => {
-        if (!activeRef.current) return
-        const state = vlmStateRef.current
-        if (state.inFlight) return
-        state.inFlight = true
-        state.lastCallTs = performance.now()
-        state.lastBoxCenter = null // manual, no specific box
-
-        setAiThinking(true)
-        setAiThinkingMessage("AI is thinking…")
-        aiThinkingRef.current = true
-        if (aiThinkingTimerRef.current) {
-          clearTimeout(aiThinkingTimerRef.current)
-          aiThinkingTimerRef.current = null
-        }
-        aiThinkingTimerRef.current = setTimeout(() => {
-          setAiThinkingMessage("Analyzing the exhibit…")
-        }, 3000)
-        // give manual VLM one frame to breathe (priotise UI first)
-        await new Promise((resolve) => {
-          requestAnimationFrame(() => resolve())
-        })
-
-        try {
-          const blob = await captureFrameAsBlob()
-          const rawText = await callVlmApi(blob)
-          let description = typeof rawText === "string" ? rawText : ""
-          description = description.replace(/\*\*(.*?)\*\*/g, "$1")
-
-          const result = { description }
-          state.lastResult = result
-
-          if (result.description) {
-            setVlmDescription(result.description)
-
-            if (vlmHideTimerRef.current) {
-              clearTimeout(vlmHideTimerRef.current)
-            }
-            vlmHideTimerRef.current = setTimeout(() => {
-              setVlmDescription("")
-              vlmHideTimerRef.current = null
-            }, 10000)
-          }
-
-          return result
-        } catch (e) {
-          console.error("Manual VLM error:", e)
-          return null
-        } finally {
-          state.inFlight = false
-          setAIStopThinking()
-        }
-      }
+      // expose to hook callers (auto/manual)
+      captureFrameFnRef.current = captureFrameAsBlob
 
       const tick = async () => {
         if (!activeRef.current) return
@@ -534,10 +376,6 @@ const ExhibitDetector = ({
               if (prob >= dispatchThreshold) {
                 setAIStopThinking()
                 setVlmDescription("")
-                if (vlmHideTimerRef.current) {
-                  clearTimeout(vlmHideTimerRef.current)
-                  vlmHideTimerRef.current = null
-                }
                 const key = String(top.tagName || "object")
                 const now = performance.now()
                 const last = lastEmitRef.current[key] || 0
@@ -573,7 +411,15 @@ const ExhibitDetector = ({
                   if (hideLabelTimerRef.current)
                     clearTimeout(hideLabelTimerRef.current)
                 }
-                await maybeCallVlmForDescription(prob, boxCenter)
+
+                const captureFn = captureFrameFnRef.current
+                if (captureFn) {
+                  await describeAuto({
+                    prob,
+                    boxCenter,
+                    captureFrameAsBlob: captureFn,
+                  })
+                }
               }
             }
 
@@ -585,7 +431,7 @@ const ExhibitDetector = ({
                 vw,
                 vh,
                 "mapped:",
-                mapped.length,
+                (lastRef.current.preds || []).length,
                 raw
               )
             }
@@ -688,7 +534,7 @@ const ExhibitDetector = ({
       }
       scratchCtxRef.current = null
       scratchRef.current = null
-      manualVlmRef.current = null
+      captureFrameFnRef.current = null
     }
   }, [
     modelUrl,
@@ -701,8 +547,13 @@ const ExhibitDetector = ({
     minDispatchIntervalMs,
     updateHud,
     dispatch,
+    describeAuto,
+    setVlmDescription,
+    setAIStopThinking,
+    aiThinkingRef,
   ])
 
+  // Ask AI button timing logic (5s show, pulse after 10s)
   useEffect(() => {
     if (askAiTimerRef.current) {
       clearTimeout(askAiTimerRef.current)
@@ -737,11 +588,10 @@ const ExhibitDetector = ({
     }
   }, [detectedLabel, aiThinking, vlmDescription])
 
+  // cleanup for label timer only (VLM timers are handled inside hook)
   useEffect(() => {
     return () => {
       if (hideLabelTimerRef.current) clearTimeout(hideLabelTimerRef.current)
-      if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current)
-      if (vlmHideTimerRef.current) clearTimeout(vlmHideTimerRef.current)
     }
   }, [])
 
@@ -799,10 +649,13 @@ const ExhibitDetector = ({
           className={`ai-thinking-pill ask-ai ${
             askAiPulse ? "ask-ai-pulse" : ""
           }`}
-          onClick={() => {
+          onClick={async () => {
             setShowAskAi(false)
             setAskAiPulse(false)
-            if (manualVlmRef.current) manualVlmRef.current()
+            const captureFn = captureFrameFnRef.current
+            if (captureFn) {
+              await describeManual({ captureFrameAsBlob: captureFn })
+            }
           }}
         >
           Ask AI
