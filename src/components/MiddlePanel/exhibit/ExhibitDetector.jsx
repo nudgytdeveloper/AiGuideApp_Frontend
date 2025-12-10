@@ -7,7 +7,6 @@ import * as cvstfjs from "@microsoft/customvision-tfjs"
 import { useDispatch } from "react-redux"
 import { setExhibit } from "@nrs/slices/detectionSlice"
 import { resolveLabel } from "@nrs/utils/common"
-import Toast from "@nrs/components/Common/Toast"
 import ExhibitInfoPanel from "@nrs/components/MiddlePanel/exhibit/ExhibitInfoPanel"
 import { useVlmDescription } from "@nrs/hooks/useVlmDescription" // adjust path
 // static styles put ourside detector.. so.. no new objects on each render
@@ -56,14 +55,8 @@ const ExhibitDetector = ({
   const labelsRef = useRef([])
   const lastRef = useRef({ ts: 0, preds: [] })
   // machine vision UI related state
-  const [showToast, setShowToast] = useState(false)
   const [detectedLabel, setDetectedLabel] = useState("")
-  const showToastRef = useRef(showToast)
   const detectedLabelRef = useRef(detectedLabel)
-
-  useEffect(() => {
-    showToastRef.current = showToast
-  }, [showToast])
 
   useEffect(() => {
     detectedLabelRef.current = detectedLabel
@@ -101,15 +94,10 @@ const ExhibitDetector = ({
   const updateHud = useCallback((patch) => {
     hudRef.current = { ...hudRef.current, ...patch }
   }, [])
-
   // offscreen canvas + cached contexts..
   const scratchRef = useRef(null)
   const scratchCtxRef = useRef(null)
   const overlayCtxRef = useRef(null)
-
-  const handleToastClose = useCallback(() => {
-    setShowToast(false)
-  }, [])
 
   const syncOverlayToContainer = (canvas) => {
     const rect = (canvas.parentElement || canvas).getBoundingClientRect()
@@ -143,10 +131,6 @@ const ExhibitDetector = ({
     const dx = Math.floor((cwCss - drawW) / 2)
     const dy = Math.floor((chCss - drawH) / 2)
     return { drawW, drawH, dx, dy }
-  }
-
-  const drawBox = (ctx, cwCss, chCss, x, y, w, h, tag) => {
-    return
   }
 
   const normalizePredictions = (raw, labelMap) => {
@@ -195,7 +179,6 @@ const ExhibitDetector = ({
     }
     return []
   }
-
   // load labels
   useEffect(() => {
     let ignore = false
@@ -238,7 +221,6 @@ const ExhibitDetector = ({
       if (startedRef.current) return
       startedRef.current = true
       activeRef.current = true
-
       updateHud({ backend: tf.getBackend() })
 
       const resolvedModelUrl = resolveUrl(modelUrl)
@@ -394,7 +376,6 @@ const ExhibitDetector = ({
                   }
                   setVlmDescription("")
                   setDetectedLabel(payload.label)
-                  if (!showToastRef.current) setShowToast(true)
                   dispatch(setExhibit(payload.label))
                   lastEmitRef.current[key] = now
                   if (hideLabelTimerRef.current)
@@ -453,32 +434,6 @@ const ExhibitDetector = ({
           } finally {
             inflightRef.current = false
           }
-        }
-
-        const age = performance.now() - lastRef.current.ts
-        const preds = age <= persistMs ? lastRef.current.preds : []
-        let drawn = 0
-        for (const p of preds) {
-          if (drawn >= maxDetections) break
-          const prob = Number(p.probability || 0)
-          const tag = String(p.tagName || "object")
-          const bb = p.boundingBox || { left: 0, top: 0, width: 0, height: 0 }
-          const x = lb.dx + Math.round(bb.left * lb.drawW)
-          const y = lb.dy + Math.round(bb.top * lb.drawH)
-          const w = Math.max(1, Math.round(bb.width * lb.drawW))
-          const h = Math.max(1, Math.round(bb.height * lb.drawH))
-
-          drawBox(
-            ctx,
-            cwCss,
-            chCss,
-            x,
-            y,
-            w,
-            h,
-            `${tag} ${(prob * 100).toFixed(1)}%`
-          )
-          drawn++
         }
 
         if (debug) {
@@ -678,12 +633,6 @@ const ExhibitDetector = ({
           <ExhibitInfoPanel label={detectedLabel} />
         </div>
       ) : null}
-      {/* <Toast
-        message={"Exhibit detected.\nYour location is set."}
-        show={showToast}
-        duration={5000}
-        onClose={handleToastClose}
-      /> */}
     </div>
   )
 }
