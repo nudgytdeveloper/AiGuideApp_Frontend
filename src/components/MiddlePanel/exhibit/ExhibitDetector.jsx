@@ -47,6 +47,9 @@ const ExhibitDetector = ({
     manualVlmRef = useRef(null)
   const [showAskAi, setShowAskAi] = useState(false)
   const askAiTimerRef = useRef(null)
+  const [askAiPulse, setAskAiPulse] = useState(false)
+  const askAiPulseTimerRef = useRef(null)
+  const askAiShownAtRef = useRef(0)
   // VLM descriptive mode state..
   const [vlmDescription, setVlmDescription] = useState("")
   const vlmStateRef = useRef({
@@ -691,6 +694,12 @@ const ExhibitDetector = ({
       clearTimeout(askAiTimerRef.current)
       askAiTimerRef.current = null
     }
+    if (askAiPulseTimerRef.current) {
+      clearInterval(askAiPulseTimerRef.current)
+      askAiPulseTimerRef.current = null
+    }
+
+    setAskAiPulse(false)
 
     if (detectedLabel || aiThinking || vlmDescription) {
       setShowAskAi(false)
@@ -699,13 +708,18 @@ const ExhibitDetector = ({
 
     askAiTimerRef.current = setTimeout(() => {
       setShowAskAi(true)
+      askAiShownAtRef.current = Date.now()
+      askAiPulseTimerRef.current = setInterval(() => {
+        const elapsed = Date.now() - askAiShownAtRef.current
+        if (elapsed >= 10000) {
+          setAskAiPulse(true)
+        }
+      }, 500)
     }, 5000)
 
     return () => {
-      if (askAiTimerRef.current) {
-        clearTimeout(askAiTimerRef.current)
-        askAiTimerRef.current = null
-      }
+      if (askAiTimerRef.current) clearTimeout(askAiTimerRef.current)
+      if (askAiPulseTimerRef.current) clearInterval(askAiPulseTimerRef.current)
     }
   }, [detectedLabel, aiThinking, vlmDescription])
 
@@ -784,18 +798,19 @@ const ExhibitDetector = ({
       )}
       {showAskAi && (
         <div
-          className="ai-thinking-pill ask-ai"
+          className={`ai-thinking-pill ask-ai ${
+            askAiPulse ? "ask-ai-pulse" : ""
+          }`}
           onClick={() => {
             setShowAskAi(false)
-            // setVlmDescription("")
-            if (manualVlmRef.current) {
-              manualVlmRef.current()
-            }
+            setAskAiPulse(false)
+            if (manualVlmRef.current) manualVlmRef.current()
           }}
         >
           Ask AI
         </div>
       )}
+
       <Webcam
         ref={webcamRef}
         audio={false}

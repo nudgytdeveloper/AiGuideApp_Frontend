@@ -839,6 +839,7 @@ canvas {
   animation: fadeUp 0.25s ease-out;
   background: #7b2cbf; /* solid purple */
   font-weight: 600;
+  will-change: transform, opacity;
 }
 
 @keyframes fadeUp {
@@ -854,4 +855,27 @@ canvas {
 
 .ai-thinking-pill.ask-ai:active {
   transform: translateX(-50%) scale(0.96);
+}
+
+/* Ask AI pulse attention hint (override any other animations) */
+.ask-ai-pulse {
+  animation-name: askAiPulse !important;
+  animation-duration: 1.4s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+}
+
+@keyframes askAiPulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
 }
