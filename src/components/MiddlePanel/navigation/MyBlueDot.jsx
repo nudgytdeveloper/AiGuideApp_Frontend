@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect } from "react"
 import { useMap, useMapViewEvent } from "@mappedin/react-sdk"
 import { BlueDot } from "@mappedin/blue-dot"
 import { useThrottle } from "@nrs/utils/common"
@@ -7,17 +7,14 @@ import { setPosition } from "@nrs/slices/navigationSlice"
 
 const MyBlueDot = () => {
   const { mapView } = useMap()
-  const myBlueDot = useRef(null)
   const dispatch = useDispatch(),
     canSend = useThrottle(2000)
-  // hasSetZoom = useRef(false)
 
   // Enable BlueDot once the MapView is loaded.
   useEffect(() => {
     if (!mapView) return
 
     const blueDot = new BlueDot(mapView)
-    myBlueDot.current = blueDot
 
     blueDot.on("position-update", (update) => {
       // console.debug("BlueDot position-update:", update.coordinate)
@@ -39,7 +36,6 @@ const MyBlueDot = () => {
       timeout: 30000,
     })
 
-    // blueDot.follow("position-only")
     blueDot.follow("floor-and-position")
     // blueDot.update({
     //   accuracy: 35,

@@ -3,6 +3,7 @@ import { MapView, useMapData } from "@mappedin/react-sdk"
 import MapOverlay from "@nrs/components/MiddlePanel/navigation/MapOverlay"
 import MyBlueDot from "@nrs/components/MiddlePanel/navigation/MyBlueDot"
 import FloorSwitcher from "@nrs/components/MiddlePanel/navigation/FloorSwitcher"
+import RecenterButton from "@nrs/components/MiddlePanel/navigation/RecenterButton"
 
 const MappedinMap = () => {
   const { isLoading, error, mapData } = useMapData({
@@ -27,9 +28,12 @@ const MappedinMap = () => {
           width: "100%",
         }}
       >
-        <MyBlueDot />
-        <FloorSwitcher />
-        <MapOverlay />
+        <div className="map-ui-layer">
+          <MyBlueDot />
+          <FloorSwitcher />
+          <MapOverlay />
+          <RecenterButton />
+        </div>
       </MapView>
     </div>
   ) : null

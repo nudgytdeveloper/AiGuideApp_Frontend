@@ -1,3 +1,4 @@
+import "@nrs/css/MiddlePanel.css"
 import AvatarChat from "@nrs/components/MiddlePanel/AvatarChat"
 import { AIChat, ExhibitDetection, Navigation } from "@nrs/constants/PageType"
 import { useSelector, useDispatch } from "react-redux"
