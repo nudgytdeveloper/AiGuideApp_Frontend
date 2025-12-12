@@ -82,7 +82,7 @@
 /* Emotion recognition */
 .video-preview {
   position: absolute;
-  top: 16px;
+  top: 30px;
   right: 8px;
   border-radius: 12px;
   background: rgba(123, 44, 191, 0.15); /* optional placeholder */

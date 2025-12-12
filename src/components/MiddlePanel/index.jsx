@@ -9,6 +9,7 @@ import { ArrayEqual } from "@nrs/utils/common"
 import { useCallback } from "react"
 import LiveScan from "@nrs/components/MiddlePanel/LiveScan"
 import MappedinMap from "@nrs/components/MiddlePanel/MappedinMap"
+import LiveFeed from "@nrs/components/LiveFeed"
 
 const MiddlePanel = () => {
   const dispatch = useDispatch(),
