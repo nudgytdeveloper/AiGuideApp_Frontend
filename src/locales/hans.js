@@ -3,4 +3,5 @@ export default {
   MessagePlaceholder: "在这输入询问。。",
   MapBtn: "导航",
   ScanBtn: "实况扫描",
+  GiveFeedback: "意见反馈",
 }
