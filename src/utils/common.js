@@ -38,11 +38,22 @@ export function extractJson(text) {
     return null
   }
 }
+function buildLoosePattern(word) {
+  return word.split("").join("[^a-zA-Z]*")
+}
+
 export function censorBadWords(text = "") {
   let result = text
+
   BAD_WORDS.forEach((word) => {
-    const regex = new RegExp(word, "gi")
-    result = result.replace(regex, "*".repeat(word.length))
+    const loosePattern = buildLoosePattern(word)
+    const regex = new RegExp(loosePattern, "gi")
+
+    result = result.replace(regex, (match) => {
+      // Replace the entire detected segment with **** of proper length
+      return "*".repeat(word.length)
+    })
   })
+
   return result
 }
