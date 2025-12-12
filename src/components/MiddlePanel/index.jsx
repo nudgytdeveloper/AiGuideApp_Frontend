@@ -13,8 +13,12 @@ import LiveFeed from "@nrs/components/LiveFeed"
 
 const MiddlePanel = () => {
   const dispatch = useDispatch(),
-    [selectedPageType] = useSelector((state) => {
-      return [state.common.get("selectedPageType")]
+    [selectedPageType, isLiveFeedEnabled] = useSelector((state) => {
+      const commonState = state.common
+      return [
+        commonState.get("selectedPageType"),
+        commonState.get("isLiveFeedEnabled"),
+      ]
     }, ArrayEqual)
 
   const togglePageType = useCallback(
@@ -34,8 +38,8 @@ const MiddlePanel = () => {
       ) : (
         <LiveScan />
       )}
-      {selectedPageType == AIChat ? (
-        <div className="video-preview">{/* <LiveFeed /> */}</div>
+      {selectedPageType == AIChat && isLiveFeedEnabled ? (
+        <div className="video-preview">{<LiveFeed />}</div>
       ) : null}
       <div className="action-buttons">
         <button

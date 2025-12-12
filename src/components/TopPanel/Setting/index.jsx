@@ -1,5 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import "@nrs/css/Setting.css"
+import { setIsLiveFeedEnabled } from "@nrs/slices/commonSlice"
+import { ArrayEqual } from "@nrs/utils/common"
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -8,7 +11,10 @@ const LANGS = [
 ]
 
 const Setting = ({ isOpen, onClose, onEndJourney }) => {
-  const [liveVideo, setLiveVideo] = useState(false)
+  const dispatch = useDispatch(),
+    [isLiveFeedEnabled] = useSelector((state) => {
+      return [state.common.get("isLiveFeedEnabled")]
+    }, ArrayEqual)
   const [langValue, setlangValue] = useState("en")
 
   useEffect(() => {
@@ -23,7 +29,7 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
   if (!isOpen) return null
 
   const handleToggleLiveVideo = () => {
-    setLiveVideo((v) => !v)
+    dispatch(setIsLiveFeedEnabled(!isLiveFeedEnabled))
   }
 
   const handleChangeLang = (code) => {
@@ -43,22 +49,19 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
             ×
           </button>
         </div>
-
         <div className="settings-section">
           <div className="settings-row">
             <span className="settings-row-label">Live Video Feed</span>
-
             <button
               type="button"
               className="settings-toggle"
               onClick={handleToggleLiveVideo}
-              aria-pressed={liveVideo}
+              aria-pressed={isLiveFeedEnabled}
             >
               <span className="settings-toggle-knob" />
             </button>
           </div>
         </div>
-
         <div className="settings-section">
           <div className="settings-section-title">Language</div>
           <div className="settings-language-row">
@@ -77,7 +80,6 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
             ))}
           </div>
         </div>
-
         <button
           type="button"
           className="settings-end-journey-btn"
