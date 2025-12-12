@@ -1,3 +1,4 @@
+import { BAD_WORDS } from "@nrs/constants/BadWords"
 import { fromJS, is } from "immutable"
 import { useRef } from "react"
 
@@ -36,4 +37,12 @@ export function extractJson(text) {
     console.error("LLM JSON parse error:", err, text)
     return null
   }
+}
+export function censorBadWords(text = "") {
+  let result = text
+  BAD_WORDS.forEach((word) => {
+    const regex = new RegExp(word, "gi")
+    result = result.replace(regex, "*".repeat(word.length))
+  })
+  return result
 }

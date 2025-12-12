@@ -11,7 +11,7 @@ import {
 } from "@nrs/slices/chatSlice"
 import { setPageType } from "@nrs/slices/commonSlice"
 import { setDestination } from "@nrs/slices/navigationSlice"
-import { ArrayEqual, extractJson } from "@nrs/utils/common"
+import { ArrayEqual, censorBadWords, extractJson } from "@nrs/utils/common"
 import { useEffect, useRef, useState } from "react"
 import { useDispatch } from "react-redux"
 import { useSelector } from "react-redux"
@@ -126,7 +126,7 @@ const BottomPanel = () => {
     dispatch(
       addConversationHistory({
         role: role,
-        content: content,
+        content: censorBadWords(content),
         timestamp: currentTime,
       })
     )
