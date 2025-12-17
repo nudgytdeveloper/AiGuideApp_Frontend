@@ -247,7 +247,7 @@ ENGAGEMENT STRATEGIES:
           },
           body: JSON.stringify({
             text: text,
-            model_id: "eleven_multilingual_v2",
+            model_id: "eleven_multilingual_v2", //eleven_flash_v2_5 // eleven_multilingual_v2
             voice_settings: {
               stability: 0.8,
               similarity_boost: 0.6,
