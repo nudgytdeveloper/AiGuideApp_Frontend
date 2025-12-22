@@ -3,13 +3,18 @@ import settingsIcon from "@nrs/assets/img/settings.png"
 import FeedbackModal from "@nrs/components/BottomPanel/FeedbackModal"
 import Setting from "@nrs/components/TopPanel/Setting"
 import { AIChat } from "@nrs/constants/PageType"
+import { endSession } from "@nrs/slices/sessionSlice"
 import { ArrayEqual } from "@nrs/utils/common"
 import { useState } from "react"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
 
 export const TopPanel = () => {
-  const [selectedPageType] = useSelector((state) => {
-    return [state.common.get("selectedPageType")]
+  const dispatch = useDispatch()
+  const [selectedPageType, sessiom] = useSelector((state) => {
+    return [
+      state.common.get("selectedPageType"),
+      state.session.get("sessionId"),
+    ]
   }, ArrayEqual)
 
   const [isSettingOpen, setIsSettingOpen] = useState(false)
@@ -32,7 +37,12 @@ export const TopPanel = () => {
       <Setting
         isOpen={isSettingOpen}
         onClose={() => setIsSettingOpen(false)}
-        onEndJourney={() => {}}
+        onEndJourney={() => {
+          // end session
+          if (sessiom) {
+            dispatch(endSession({ sessionId: sessiom }))
+          }
+        }}
       />
     </>
   )

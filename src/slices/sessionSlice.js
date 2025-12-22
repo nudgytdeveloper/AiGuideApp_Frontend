@@ -3,6 +3,8 @@ import { fromJS } from "immutable"
 
 const initialState = fromJS({
   sessionId: null,
+  status: null,
+  end_reason: null,
 })
 
 const sessionSlice = createSlice({
@@ -19,9 +21,24 @@ const sessionSlice = createSlice({
         })
       )
     },
+    endSession: (state) => {
+      return state
+    },
+    endSessionSuccess: (state, actions) => {
+      return state.merge(
+        fromJS({
+          ...actions.payload,
+        })
+      )
+    },
   },
 })
 
-export const { verifySession, verifySessionSuccess } = sessionSlice.actions
+export const {
+  verifySession,
+  verifySessionSuccess,
+  endSession,
+  endSessionSuccess,
+} = sessionSlice.actions
 
 export default sessionSlice.reducer

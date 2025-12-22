@@ -5,6 +5,9 @@ const Api = {
   verifySession: (payload) => {
     return get(`${prefix}/api/session/access`, payload)
   },
+  endSession: (payload) => {
+    return post(`${prefix}/api/session/end`, payload)
+  },
 }
 
 export default Api

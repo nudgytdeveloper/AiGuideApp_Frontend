@@ -63,7 +63,7 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
           </div>
         </div>
         <div className="settings-section">
-          <div className="settings-section-title">Language</div>
+          {/* <div className="settings-section-title">Language</div>
           <div className="settings-language-row">
             {LANGS.map((lang) => (
               <button
@@ -78,7 +78,7 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
                 {lang.label}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
         <button
           type="button"

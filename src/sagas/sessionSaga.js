@@ -1,6 +1,11 @@
 import Api from "@nrs/apis"
 import { takeLatest, call, cancelled, put } from "redux-saga/effects"
-import { verifySession, verifySessionSuccess } from "@nrs/slices/sessionSlice"
+import {
+  endSession,
+  endSessionSuccess,
+  verifySession,
+  verifySessionSuccess,
+} from "@nrs/slices/sessionSlice"
 import { BadRequest, NotFound } from "@nrs/constants/StatusCode"
 import * as PopupType from "@nrs/constants/PopupType"
 import { openPopUp, setIsLoading } from "@nrs/slices/commonSlice"
@@ -17,7 +22,14 @@ function* verifySessionFunc(action) {
 
     const result = yield call(Api.verifySession, param)
     if (result) {
-      yield put(verifySessionSuccess({ sessionId: result.id }))
+      console.log("result: ", result.data)
+      yield put(
+        verifySessionSuccess({
+          sessionId: result.id,
+          status: result.data.status,
+          end_reason: result.data.end_reason,
+        })
+      )
       yield put(
         setConversationHistory({ conversationHistory: result.data.chat_data })
       )
@@ -51,6 +63,56 @@ function* verifySessionFunc(action) {
     // HideLoading()
   }
 }
+
+function* endSessionFunc(action) {
+  try {
+    let { sessionId } = action.payload
+    console.log("ending session..., ", sessionId)
+    const param = {
+      session: sessionId,
+    }
+
+    const result = yield call(Api.endSession, param)
+    if (result) {
+      console.log("end session result: ", result.data)
+      yield put(
+        endSessionSuccess({
+          sessionId: result.id,
+          status: result.data.status,
+          end_reason: result.data.end_reason,
+        })
+      )
+      yield put(
+        openPopUp({
+          popupType: PopupType.Error,
+          errorCode: NotFound,
+          message: "Your session has ended successfully.",
+        })
+      )
+    } else {
+      console.log("Error while ending..")
+      yield put(
+        openPopUp({
+          popupType: PopupType.Error,
+          errorCode: BadRequest,
+          message: "Error while end session verification api...",
+        })
+      )
+    }
+  } catch (err) {
+    yield put(
+      openPopUp({
+        popupType: PopupType.Error,
+        errorCode: NotFound,
+        message: `Error while ending session: ${err}`,
+      })
+    )
+    yield cancelled()
+  } finally {
+    yield cancelled()
+  }
+}
 export default function* rootSaga() {
   yield takeLatest(verifySession.type, verifySessionFunc)
+  yield takeLatest(endSession.type, endSessionFunc)
 }
