@@ -18,6 +18,7 @@ const MapOverlay = () => {
       navState.get("destination"),
     ]
   }, ArrayEqual)
+  const YOU_ARE_HERE_NAME = "You're here"
 
   const spaces = useMemo(() => {
     if (!mapData) return []
@@ -28,6 +29,16 @@ const MapOverlay = () => {
     if (!mapData) return []
     return mapData.getByType("point-of-interest") || []
   }, [mapData])
+
+  const youAreHerePoi = useMemo(() => {
+    const key = YOU_ARE_HERE_NAME.trim().toLowerCase()
+    return pois.find((p) => (p?.name || "").trim().toLowerCase() === key)
+  }, [pois])
+
+  const poisForNormalRender = useMemo(() => {
+    if (!youAreHerePoi) return pois
+    return pois.filter((p) => p.id !== youAreHerePoi.id)
+  }, [pois, youAreHerePoi])
 
   useEffect(() => {
     if (!mapView) return
@@ -121,6 +132,7 @@ const MapOverlay = () => {
       const clickedMarker = event?.markers?.[0]
       let poiName = ""
       let poiCoord = null
+      // console.log("start coord: ", startCoordRef.current)
 
       if (clickedMarker) {
         if (
@@ -242,7 +254,7 @@ const MapOverlay = () => {
         </Marker>
       ))}
 
-      {pois.map((poi) => (
+      {poisForNormalRender.map((poi) => (
         <Marker key={poi.id} target={poi} options={{ interactive: true }}>
           <div
             style={{
