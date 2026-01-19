@@ -13,8 +13,7 @@ import { setPageType } from "@nrs/slices/commonSlice"
 import { setDestination } from "@nrs/slices/navigationSlice"
 import { ArrayEqual, censorBadWords, extractJson } from "@nrs/utils/common"
 import { useEffect, useRef, useState } from "react"
-import { useDispatch } from "react-redux"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 
 const BottomPanel = () => {
   const [
@@ -34,86 +33,268 @@ const BottomPanel = () => {
       ]
     }, ArrayEqual),
     dispatch = useDispatch(),
-    recognitionRef = useRef(null),
     [inputValue, setInputValue] = useState("")
 
-  // Start listening - triggered by mic button
-  const startListening = () => {
-    if (recognitionRef.current && !isListening && !isProcessing) {
-      recognitionRef.current.start()
-    } else if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop()
+  // =========================
+  // Whisper STT via Render
+  // =========================
+  const sttUrl =
+    import.meta.env.VITE_STT_URL ||
+    "https://stt-multilang.onrender.com/transcribe"
+
+  const mediaRecorderRef = useRef(null)
+  const mediaStreamRef = useRef(null)
+  const chunksRef = useRef([])
+  const stopTimerRef = useRef(null)
+  const [isSttBusy, setIsSttBusy] = useState(false)
+
+  // VAD (voice activity detection) refs
+  const audioCtxRef = useRef(null)
+  const analyserRef = useRef(null)
+  const vadRafRef = useRef(null)
+
+  const speechStartedRef = useRef(false)
+  const lastVoiceAtRef = useRef(0)
+  const startedAtRef = useRef(0)
+
+  const VAD = {
+    // How sensitive speech detection is
+    threshold: 0.02, // 0.01–0.03 typical; lower = more sensitive
+    minSpeechMs: 250, // require at least this before allowing stop
+    silenceStopMs: 800, // stop after this much silence *after speech started*
+    hardMaxMs: 12000, // absolute max recording time (safety)
+    warmupMs: 250, // ignore first bit (mic clicks)
+  }
+
+  const startVadLoop = () => {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    audioCtxRef.current = audioCtx
+
+    const source = audioCtx.createMediaStreamSource(mediaStreamRef.current)
+    const analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 2048
+    analyser.smoothingTimeConstant = 0.85
+    analyserRef.current = analyser
+
+    source.connect(analyser)
+
+    const buf = new Uint8Array(analyser.fftSize)
+
+    speechStartedRef.current = false
+    lastVoiceAtRef.current = 0
+    startedAtRef.current = Date.now()
+
+    const tick = () => {
+      const now = Date.now()
+      const elapsed = now - startedAtRef.current
+
+      // hard cap safety
+      if (elapsed > VAD.hardMaxMs) {
+        stopWhisperRecording()
+        return
+      }
+
+      // get time-domain samples
+      analyser.getByteTimeDomainData(buf)
+
+      // RMS energy 0..~1
+      let sum = 0
+      for (let i = 0; i < buf.length; i++) {
+        const v = (buf[i] - 128) / 128
+        sum += v * v
+      }
+      const rms = Math.sqrt(sum / buf.length)
+
+      // Ignore the first warmup window to avoid false triggers
+      if (elapsed > VAD.warmupMs) {
+        const isVoice = rms > VAD.threshold
+
+        if (isVoice) {
+          if (!speechStartedRef.current) speechStartedRef.current = true
+          lastVoiceAtRef.current = now
+        } else if (speechStartedRef.current) {
+          // only stop after we heard some speech (minSpeechMs)
+          const spokenFor = now - startedAtRef.current
+          const silentFor = now - (lastVoiceAtRef.current || now)
+
+          if (spokenFor >= VAD.minSpeechMs && silentFor >= VAD.silenceStopMs) {
+            stopWhisperRecording()
+            return
+          }
+        }
+      }
+
+      vadRafRef.current = requestAnimationFrame(tick)
+    }
+
+    vadRafRef.current = requestAnimationFrame(tick)
+  }
+
+  const startWhisperRecording = async () => {
+    if (isProcessing || isSttBusy || isListening) return
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaStreamRef.current = stream
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+            ? "audio/ogg;codecs=opus"
+            : ""
+
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      mediaRecorderRef.current = rec
+      chunksRef.current = []
+
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      rec.onstart = () => {
+        dispatch(setIsListening(true))
+      }
+
+      rec.onstop = async () => {
+        dispatch(setIsListening(false))
+
+        // stop mic tracks
+        mediaStreamRef.current?.getTracks()?.forEach((t) => t.stop())
+        mediaStreamRef.current = null
+
+        const blob = new Blob(chunksRef.current, {
+          type: rec.mimeType || "audio/webm",
+        })
+
+        // If user tapped stop quickly, blob can be too small
+        if (!blob || blob.size < 8000) {
+          chunksRef.current = []
+          return
+        }
+
+        setIsSttBusy(true)
+        try {
+          const fd = new FormData()
+          fd.append(
+            "file",
+            blob,
+            blob.type.includes("ogg") ? "audio.ogg" : "audio.webm",
+          )
+
+          const res = await fetch(sttUrl, {
+            method: "POST",
+            body: fd,
+          })
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "")
+            throw new Error(`STT error ${res.status}: ${txt || res.statusText}`)
+          }
+
+          const data = await res.json()
+          const transcript = (data?.text || "").trim()
+
+          if (transcript) {
+            addToConversationHistory(User, transcript)
+          } else {
+            // No speech detected; ignore silently or show message if you want
+            console.warn("STT: no speech detected")
+          }
+        } catch (err) {
+          console.error("STT failed:", err)
+        } finally {
+          setIsSttBusy(false)
+          chunksRef.current = []
+          mediaRecorderRef.current = null
+        }
+      }
+
+      rec.start()
+      startVadLoop()
+    } catch (err) {
+      console.error("Mic permission / start recording error:", err)
+      dispatch(setIsListening(false))
+      mediaStreamRef.current?.getTracks()?.forEach((t) => t.stop())
+      mediaStreamRef.current = null
+      mediaRecorderRef.current = null
+      chunksRef.current = []
+    }
+  }
+
+  const stopWhisperRecording = () => {
+    clearTimeout(stopTimerRef.current) // ok to keep even if unused
+    // stop VAD loop
+    if (vadRafRef.current) cancelAnimationFrame(vadRafRef.current)
+    vadRafRef.current = null
+    // close audio context
+    try {
+      analyserRef.current = null
+      audioCtxRef.current?.close?.()
+    } catch {}
+    audioCtxRef.current = null
+
+    const rec = mediaRecorderRef.current
+    if (rec && rec.state !== "inactive") {
+      try {
+        rec.stop()
+      } catch {}
+    } else {
       dispatch(setIsListening(false))
     }
   }
 
+  // Mic button handler (toggle)
+  const startListening = () => {
+    if (isListening) {
+      stopWhisperRecording()
+    } else {
+      startWhisperRecording()
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(stopTimerRef.current)
+      try {
+        mediaRecorderRef.current?.stop?.()
+      } catch {}
+      mediaStreamRef.current?.getTracks()?.forEach((t) => t.stop())
+      if (vadRafRef.current) cancelAnimationFrame(vadRafRef.current)
+      try {
+        audioCtxRef.current?.close?.()
+      } catch {}
+    }
+  }, [])
+
+  // -------------------------
+  // Existing text input flow
+  // -------------------------
   const handleTextSubmit = () => {
     const input = document.getElementById("chatbox")
     const text = input.value.trim()
     if (text) {
-      addToConversationHistory("user", text)
+      addToConversationHistory(User, text)
       input.value = ""
       setInputValue("")
     }
   }
 
-  // Handle Enter key in text input
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       handleTextSubmit()
     }
   }
+
   const handleNavigateClick = (nav) => {
     if (!nav) return
     if (nav.confidence < 0.8) return
 
-    console.log("navigate to map and start navigation directly...")
     dispatch(setPageType(Navigation))
-
-    console.log("target name: ", nav.get("targetDisplayName"))
     dispatch(setDestination(nav.get("targetDisplayName")))
   }
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition
-      const recognition = new SpeechRecognition()
-
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = "en-US"
-
-      recognition.onstart = () => {
-        dispatch(setIsListening(true))
-      }
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript
-        addToConversationHistory("user", transcript)
-      }
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error)
-        dispatch(setIsListening(false))
-      }
-
-      recognition.onend = () => {
-        dispatch(setIsListening(false))
-      }
-
-      recognitionRef.current = recognition
-    } else {
-      console.warn("Speech recognition not supported in this browser")
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort()
-      }
-    }
-  }, [])
 
   // Add message to conversation history
   const addToConversationHistory = (role, content) => {
@@ -128,7 +309,7 @@ const BottomPanel = () => {
         role: role,
         content: censorBadWords(content),
         timestamp: currentTime,
-      })
+      }),
     )
 
     if (role === User) {
@@ -163,7 +344,7 @@ ENGAGEMENT STRATEGIES:
             timestamp: Date.now(),
           },
         ],
-      })
+      }),
     )
   }
 
@@ -189,9 +370,8 @@ ENGAGEMENT STRATEGIES:
         body: JSON.stringify({ messages }),
       })
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`)
-      }
 
       const data = await response.json()
       const raw =
@@ -207,7 +387,7 @@ ENGAGEMENT STRATEGIES:
           content: aiResponse,
           nav: payload.nav ?? null,
           timestamp: Date.now(),
-        })
+        }),
       )
 
       speakResponseWithElevenLabs(aiResponse)
@@ -221,7 +401,7 @@ ENGAGEMENT STRATEGIES:
           role: Assistant,
           content: fallbackResponse,
           timestamp: Date.now(),
-        })
+        }),
       )
       speakResponseWithElevenLabs(fallbackResponse)
     } finally {
@@ -246,7 +426,7 @@ ENGAGEMENT STRATEGIES:
             "xi-api-key": ELEVENLABS_API_KEY,
           },
           body: JSON.stringify({
-            text: text,
+            text,
             model_id: "eleven_multilingual_v2", //eleven_flash_v2_5 // eleven_multilingual_v2
             voice_settings: {
               stability: 0.8,
@@ -255,31 +435,23 @@ ENGAGEMENT STRATEGIES:
               use_speaker_boost: false,
             },
           }),
-        }
+        },
       )
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`ElevenLabs API error: ${response.status}`)
-      }
 
       const audioBlob = await response.blob()
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
-
       audio.play()
-
-      // Clean up the URL after playing
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
-      }
+      audio.onended = () => URL.revokeObjectURL(audioUrl)
     } catch (error) {
       console.error("Error with ElevenLabs TTS:", error)
-      // Fallback to browser TTS if ElevenLabs fails
       speakResponseFallback(text)
     }
   }
 
-  // Fallback text to speech using browser's built-in TTS
   const speakResponseFallback = (text) => {
     window.speechSynthesis.cancel()
 
@@ -291,22 +463,20 @@ ENGAGEMENT STRATEGIES:
 
     const voices = window.speechSynthesis.getVoices()
     const englishVoices = voices.filter(
-      (voice) => voice.lang.startsWith("en-") || voice.lang === "en"
+      (voice) => voice.lang.startsWith("en-") || voice.lang === "en",
     )
-
     const preferredVoice = englishVoices.find(
       (voice) =>
         voice.name.includes("Samantha") ||
         voice.name.includes("Karen") ||
-        voice.name.toLowerCase().includes("female")
+        voice.name.toLowerCase().includes("female"),
     )
 
-    if (preferredVoice || englishVoices[0]) {
-      utterance.voice = preferredVoice || englishVoices[0]
-    }
-
+    utterance.voice = preferredVoice || englishVoices[0] || null
     window.speechSynthesis.speak(utterance)
   }
+
+  const micDisabled = isProcessing || isSttBusy
 
   return (
     <>
@@ -316,6 +486,7 @@ ENGAGEMENT STRATEGIES:
           onNavigate={handleNavigateClick}
         />
       ) : null}
+
       <footer className="chat-box">
         <div className="input-wrapper">
           <input
@@ -341,10 +512,11 @@ ENGAGEMENT STRATEGIES:
 
         <button
           className={`mic-btn ${isListening ? "listening" : ""} ${
-            isProcessing ? "processing" : ""
-          } ${isListening || isProcessing ? "running" : ""}`}
+            micDisabled ? "processing" : ""
+          } ${isListening || micDisabled ? "running" : ""}`}
           onClick={startListening}
-          disabled={isProcessing}
+          disabled={micDisabled}
+          title={isListening ? "Stop" : "Speak"}
         >
           {isListening ? (
             <span className="stop-icon" />
