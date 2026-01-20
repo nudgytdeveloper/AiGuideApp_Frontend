@@ -83,10 +83,10 @@ const BottomPanel = () => {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition
       const recognition = new SpeechRecognition()
-      console.log("selectedLang: ", selectedLang)
       recognition.continuous = false
       recognition.interimResults = false
-      recognition.lang = selectedLang
+      recognition.lang =
+        selectedLang && selectedLang != "" ? selectedLang : "en-US"
 
       recognition.onstart = () => {
         dispatch(setIsListening(true))

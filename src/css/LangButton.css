@@ -88,3 +88,16 @@
     max-width: 140px;
   }
 }
+
+.header-icons .langPill.langPill--default {
+  background: #fff !important;
+  color: #111 !important;
+  border-color: #111 !important;
+}
+
+/* After user selects (dark style like top screenshot) */
+.header-icons .langPill.langPill--active {
+  background: #111 !important;
+  color: #fff !important;
+  border-color: #111 !important;
+}
