@@ -9,7 +9,7 @@ const initialState = fromJS({
   popUp: [],
   isLoading: true,
   isLiveFeedEnabled: false,
-  language: ""
+  language: null
 })
 
 const commonSlice = createSlice({

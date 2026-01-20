@@ -49,13 +49,13 @@ export const TopPanel = () => {
         <span className="logo">AI Guide</span>
         <div className="header-icons">
           <button
-            className={`langPill ${selectedLang && selectedLang != "" ? "langPill--active" : "langPill--default"}`}
+            className={`langPill ${selectedLang ? "langPill--active" : "langPill--default"}`}
             type="button"
             alt="Language selection"
             onClick={() => handleToggleSetting("lang")}
           >
             <span className="langPill__text">
-              {selectedLang && selectedLang != "" ? selectedLang : "Language"}
+              {selectedLang ? selectedLang.get("label") : "Language"}
             </span>
           </button>
           <img className="icon" src={bellIcon} alt="Notification" />

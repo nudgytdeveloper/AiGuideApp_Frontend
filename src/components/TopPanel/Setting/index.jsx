@@ -37,7 +37,7 @@ const Setting = ({ isOpen, openFrom, onClose, onEndJourney }) => {
 
   const handleChangeLang = (lang) => {
     setlangValue(lang.code)
-    dispatch(setLanguage(lang.code))
+    dispatch(setLanguage(lang))
     dispatch(
       openPopUp({
         popupType: Success,

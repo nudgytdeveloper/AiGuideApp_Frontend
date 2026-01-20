@@ -85,8 +85,8 @@ const BottomPanel = () => {
       const recognition = new SpeechRecognition()
       recognition.continuous = false
       recognition.interimResults = false
-      recognition.lang =
-        selectedLang && selectedLang != "" ? selectedLang : "en-US"
+      console.log("lang code:", selectedLang?.get("code"))
+      recognition.lang = selectedLang ? selectedLang.get("code") : "en-US"
 
       recognition.onstart = () => {
         dispatch(setIsListening(true))
@@ -189,7 +189,7 @@ ENGAGEMENT STRATEGIES:
       const response = await fetch(`${prefix}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, lang: selectedLang })
+        body: JSON.stringify({ messages, lang: selectedLang?.get("code") })
       })
 
       if (!response.ok) {
