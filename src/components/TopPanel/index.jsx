@@ -5,7 +5,7 @@ import Setting from "@nrs/components/TopPanel/Setting"
 import { AIChat } from "@nrs/constants/PageType"
 import { endSession } from "@nrs/slices/sessionSlice"
 import { ArrayEqual } from "@nrs/utils/common"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import "@nrs/css/LangButton.css"
 
@@ -20,6 +20,28 @@ export const TopPanel = () => {
   }, ArrayEqual)
 
   const [isSettingOpen, setIsSettingOpen] = useState(false)
+  const [settingOpenFrom, setSettingOpenFrom] = useState(null) // "lang" | "settings" | null
+
+  const openSetting = useCallback((from) => {
+    setSettingOpenFrom(from)
+    setIsSettingOpen(true)
+  }, [])
+
+  const closeSetting = useCallback(() => {
+    setIsSettingOpen(false)
+    setSettingOpenFrom(null)
+  }, [])
+
+  const handleToggleSetting = useCallback(
+    (from) => {
+      if (isSettingOpen) {
+        closeSetting(from)
+      } else {
+        openSetting(from)
+      }
+    },
+    [isSettingOpen]
+  )
 
   return (
     <>
@@ -29,6 +51,8 @@ export const TopPanel = () => {
           <button
             className={`langPill ${selectedLang && selectedLang != "" ? "langPill--active" : "langPill--default"}`}
             type="button"
+            alt="Language selection"
+            onClick={() => handleToggleSetting("lang")}
           >
             <span className="langPill__text">
               {selectedLang && selectedLang != "" ? selectedLang : "Language"}
@@ -39,13 +63,14 @@ export const TopPanel = () => {
             className="icon"
             src={settingsIcon}
             alt="Settings"
-            onClick={() => setIsSettingOpen(!isSettingOpen)}
+            onClick={() => handleToggleSetting("settings")}
           />
         </div>
       </header>
       {selectedPageType == AIChat ? <FeedbackModal /> : null}
       <Setting
         isOpen={isSettingOpen}
+        openFrom={settingOpenFrom}
         onClose={() => setIsSettingOpen(false)}
         onEndJourney={() => {
           // end session

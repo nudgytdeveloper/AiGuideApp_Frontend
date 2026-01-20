@@ -10,19 +10,15 @@ import { ArrayEqual } from "@nrs/utils/common"
 import { SPEECH_LANGS } from "@nrs/constants/SpeechLang"
 import { Success } from "@nrs/constants/PopupType"
 
-// const LANGS = [
-//   { code: "en", label: "English" },
-//   { code: "zh", label: "中文" },
-//   { code: "ms", label: "Bahasa Melayu" },
-// ]
 const LANGS = SPEECH_LANGS
 
-const Setting = ({ isOpen, onClose, onEndJourney }) => {
+const Setting = ({ isOpen, openFrom, onClose, onEndJourney }) => {
   const dispatch = useDispatch(),
     [isLiveFeedEnabled] = useSelector((state) => {
       return [state.common.get("isLiveFeedEnabled")]
     }, ArrayEqual)
-  const [langValue, setlangValue] = useState("en-US")
+  const [langValue, setlangValue] = useState("en-US"),
+    isFromLang = openFrom == "lang"
 
   useEffect(() => {
     if (!isOpen) return
@@ -54,7 +50,9 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-modal-header">
-          <h2 className="settings-title">Setting</h2>
+          <h2 className="settings-title">
+            {isFromLang ? "Languages" : "Setting"}
+          </h2>
           <button
             type="button"
             className="settings-close-btn"
@@ -63,44 +61,52 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
             ×
           </button>
         </div>
-        <div className="settings-section">
-          <div className="settings-row">
-            <span className="settings-row-label">Live Video Feed</span>
-            <button
-              type="button"
-              className="settings-toggle"
-              onClick={handleToggleLiveVideo}
-              aria-pressed={isLiveFeedEnabled}
-            >
-              <span className="settings-toggle-knob" />
-            </button>
-          </div>
-        </div>
-        <div className="settings-section">
-          <div className="settings-section-title">Language</div>
-          <div className="settings-language-row">
-            {LANGS.map((lang) => (
+        {isFromLang ? null : (
+          <div className="settings-section">
+            <div className="settings-row">
+              <span className="settings-row-label">Live Video Feed</span>
               <button
                 type="button"
-                key={lang.code}
-                className={
-                  "settings-lang-pill" +
-                  (langValue === lang.code ? " settings-lang-pill-active" : "")
-                }
-                onClick={() => handleChangeLang(lang)}
+                className="settings-toggle"
+                onClick={handleToggleLiveVideo}
+                aria-pressed={isLiveFeedEnabled}
               >
-                {lang.label}
+                <span className="settings-toggle-knob" />
               </button>
-            ))}
+            </div>
           </div>
-        </div>
-        <button
-          type="button"
-          className="settings-end-journey-btn"
-          onClick={onEndJourney}
-        >
-          End Journey
-        </button>
+        )}
+        {isFromLang ? (
+          <div className="settings-section">
+            <div className="settings-section-title">Language</div>
+            <div className="settings-language-row">
+              {LANGS.map((lang) => (
+                <button
+                  type="button"
+                  key={lang.code}
+                  className={
+                    "settings-lang-pill" +
+                    (langValue === lang.code
+                      ? " settings-lang-pill-active"
+                      : "")
+                  }
+                  onClick={() => handleChangeLang(lang)}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {isFromLang ? null : (
+          <button
+            type="button"
+            className="settings-end-journey-btn"
+            onClick={onEndJourney}
+          >
+            End Journey
+          </button>
+        )}
       </div>
     </div>
   )
