@@ -31,7 +31,16 @@
 
 .header-icons {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0; /* important */
+}
+
+.header-icons .icon {
+  width: 30px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: block;
 }
 
 .icon {

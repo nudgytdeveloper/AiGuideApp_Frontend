@@ -7,13 +7,14 @@ import { endSession } from "@nrs/slices/sessionSlice"
 import { ArrayEqual } from "@nrs/utils/common"
 import { useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
+import "@nrs/css/LangButton.css"
 
 export const TopPanel = () => {
   const dispatch = useDispatch()
   const [selectedPageType, sessiom] = useSelector((state) => {
     return [
       state.common.get("selectedPageType"),
-      state.session.get("sessionId"),
+      state.session.get("sessionId")
     ]
   }, ArrayEqual)
 
@@ -24,6 +25,9 @@ export const TopPanel = () => {
       <header className="header">
         <span className="logo">AI Guide</span>
         <div className="header-icons">
+          <button className="langPill" type="button">
+            <span className="langPill__text">Language</span>
+          </button>
           <img className="icon" src={bellIcon} alt="Notification" />
           <img
             className="icon"

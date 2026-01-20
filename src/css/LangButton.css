@@ -1,0 +1,90 @@
+/* Language pill (strong selector to beat overrides) */
+.header-icons .langPill {
+  --h: 32px;
+  --padX: 10px;
+  --icon: 14px;
+  --chev: 8px;
+  --gap: 10px;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  height: var(--h);
+
+  /* IMPORTANT: ensure text starts after globe area */
+  padding-left: calc(var(--padX) + var(--icon) + var(--gap) + 10px) !important;
+  padding-right: calc(var(--padX) + var(--chev) + 10px) !important;
+
+  border-radius: 999px;
+  border: 1.5px solid #111;
+  background: #111;
+  color: #fff;
+
+  font-size: clamp(12px, 2.7vw, 16px) !important;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* IMPORTANT: allow pill to shrink, not overlap icons */
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 180px;
+}
+
+/* Make text truncate instead of drawing under the globe */
+.header-icons .langPill__text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  position: relative;
+  z-index: 2; /* keep text above globe/chev */
+}
+
+/* globe */
+.header-icons .langPill::before {
+  content: "";
+  position: absolute;
+  left: var(--padX);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--icon);
+  height: var(--icon);
+  border-radius: 50%;
+  border: 2px solid currentColor;
+
+  background:
+    linear-gradient(currentColor, currentColor) 50% 50%/2px 100% no-repeat,
+    linear-gradient(currentColor, currentColor) 50% 35%/100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 50% 65%/100% 2px no-repeat;
+
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* chevron */
+.header-icons .langPill::after {
+  content: "";
+  position: absolute;
+  right: var(--padX);
+  top: 50%;
+  width: var(--chev);
+  height: var(--chev);
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-55%) rotate(45deg);
+
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* extra compact for SE-ish widths */
+@media (max-width: 390px) {
+  .header-icons .langPill {
+    --padX: 8px;
+    --gap: 6px;
+    max-width: 140px;
+  }
+}
