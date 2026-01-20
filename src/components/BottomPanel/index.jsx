@@ -7,7 +7,7 @@ import {
   setConversationHistory,
   setIsListening,
   setIsProcessing,
-  setLastInteractionTime,
+  setLastInteractionTime
 } from "@nrs/slices/chatSlice"
 import { setPageType } from "@nrs/slices/commonSlice"
 import { setDestination } from "@nrs/slices/navigationSlice"
@@ -23,14 +23,17 @@ const BottomPanel = () => {
       conversationHistory,
       lastInteractionTime,
       selectedPageType,
+      selectedLang
     ] = useSelector((state) => {
-      const chatState = state.chat
+      const chatState = state.chat,
+        commonState = state.common
       return [
         chatState.get("isListening"),
         chatState.get("isProcessing"),
         chatState.get("conversationHistory"),
         chatState.get("lastInteractionTime"),
-        state.common.get("selectedPageType"),
+        commonState.get("selectedPageType"),
+        commonState.get("language")
       ]
     }, ArrayEqual),
     dispatch = useDispatch(),
@@ -80,10 +83,10 @@ const BottomPanel = () => {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition
       const recognition = new SpeechRecognition()
-
+      console.log("selectedLang: ", selectedLang)
       recognition.continuous = false
       recognition.interimResults = false
-      recognition.lang = "en-US"
+      recognition.lang = selectedLang
 
       recognition.onstart = () => {
         dispatch(setIsListening(true))
@@ -113,7 +116,7 @@ const BottomPanel = () => {
         recognitionRef.current.abort()
       }
     }
-  }, [])
+  }, [selectedLang])
 
   // Add message to conversation history
   const addToConversationHistory = (role, content) => {
@@ -127,7 +130,7 @@ const BottomPanel = () => {
       addConversationHistory({
         role: role,
         content: censorBadWords(content),
-        timestamp: currentTime,
+        timestamp: currentTime
       })
     )
 
@@ -160,9 +163,9 @@ ENGAGEMENT STRATEGIES:
 - Offer to explore topics more deeply
 - Connect current discussion with events and exhibits from the Science Center website.
 - Invite the user to share their thoughts or experiences in the Science Center.`,
-            timestamp: Date.now(),
-          },
-        ],
+            timestamp: Date.now()
+          }
+        ]
       })
     )
   }
@@ -177,7 +180,7 @@ ENGAGEMENT STRATEGIES:
       const messages = conversationHistory
         .map((msg) => ({
           role: msg.get("role"),
-          content: msg.get("content"),
+          content: msg.get("content")
         }))
         .toJS()
       messages.push({ role: User, content: userMessage })
@@ -186,11 +189,11 @@ ENGAGEMENT STRATEGIES:
       const response = await fetch(`${prefix}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, lang: selectedLang })
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: x${response.status}`)
       }
 
       const data = await response.json()
@@ -206,7 +209,7 @@ ENGAGEMENT STRATEGIES:
           role: Assistant,
           content: aiResponse,
           nav: payload.nav ?? null,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         })
       )
 
@@ -220,7 +223,7 @@ ENGAGEMENT STRATEGIES:
         addConversationHistory({
           role: Assistant,
           content: fallbackResponse,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         })
       )
       speakResponseWithElevenLabs(fallbackResponse)
@@ -243,7 +246,7 @@ ENGAGEMENT STRATEGIES:
           headers: {
             Accept: "audio/mpeg",
             "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY,
+            "xi-api-key": ELEVENLABS_API_KEY
           },
           body: JSON.stringify({
             text: text,
@@ -252,9 +255,9 @@ ENGAGEMENT STRATEGIES:
               stability: 0.8,
               similarity_boost: 0.6,
               style: 0.2,
-              use_speaker_boost: false,
-            },
-          }),
+              use_speaker_boost: false
+            }
+          })
         }
       )
 

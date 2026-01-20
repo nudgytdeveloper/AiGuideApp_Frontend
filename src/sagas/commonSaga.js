@@ -3,7 +3,7 @@ import {
   closePopup,
   closePopupSuccess,
   openPopUp,
-  openPopUpSuccess,
+  openPopUpSuccess
 } from "@nrs/slices/commonSlice"
 import { Error, Success } from "@nrs/constants/PopupType"
 
@@ -21,7 +21,7 @@ function* openPopupDialog({ payload }) {
       if (errorCode) newPayload.errorCode = errorCode
       yield put(
         openPopUpSuccess({
-          ...newPayload,
+          ...newPayload
         })
       )
     }
@@ -40,6 +40,11 @@ function* closePopupDialog({ payload }) {
       errorCode = commonState.get("errorCode"),
       message = commonState.get("message")
 
+    const btn = document.querySelector(".settings-close-btn")
+    if (btn) {
+      btn.click()
+    }
+
     popUp = popUp.filter((pu) => pu !== payload.popupType)
 
     //Add more popup logic
@@ -55,7 +60,7 @@ function* closePopupDialog({ payload }) {
       closePopupSuccess({
         popUp,
         errorCode,
-        message,
+        message
       })
     )
   } catch (err) {

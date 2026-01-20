@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import "@nrs/css/Setting.css"
-import { setIsLiveFeedEnabled } from "@nrs/slices/commonSlice"
+import {
+  openPopUp,
+  setIsLiveFeedEnabled,
+  setLanguage
+} from "@nrs/slices/commonSlice"
 import { ArrayEqual } from "@nrs/utils/common"
+import { SPEECH_LANGS } from "@nrs/constants/SpeechLang"
+import { Success } from "@nrs/constants/PopupType"
 
-const LANGS = [
-  { code: "en", label: "English" },
-  { code: "zh", label: "中文" },
-  { code: "ms", label: "Bahasa Melayu" },
-]
+// const LANGS = [
+//   { code: "en", label: "English" },
+//   { code: "zh", label: "中文" },
+//   { code: "ms", label: "Bahasa Melayu" },
+// ]
+const LANGS = SPEECH_LANGS
 
 const Setting = ({ isOpen, onClose, onEndJourney }) => {
   const dispatch = useDispatch(),
     [isLiveFeedEnabled] = useSelector((state) => {
       return [state.common.get("isLiveFeedEnabled")]
     }, ArrayEqual)
-  const [langValue, setlangValue] = useState("en")
+  const [langValue, setlangValue] = useState("en-US")
 
   useEffect(() => {
     if (!isOpen) return
@@ -32,8 +39,15 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
     dispatch(setIsLiveFeedEnabled(!isLiveFeedEnabled))
   }
 
-  const handleChangeLang = (code) => {
-    setlangValue(code)
+  const handleChangeLang = (lang) => {
+    setlangValue(lang.code)
+    dispatch(setLanguage(lang.code))
+    dispatch(
+      openPopUp({
+        popupType: Success,
+        message: "Language is now: " + lang.label
+      })
+    )
   }
 
   return (
@@ -63,7 +77,7 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
           </div>
         </div>
         <div className="settings-section">
-          {/* <div className="settings-section-title">Language</div>
+          <div className="settings-section-title">Language</div>
           <div className="settings-language-row">
             {LANGS.map((lang) => (
               <button
@@ -73,12 +87,12 @@ const Setting = ({ isOpen, onClose, onEndJourney }) => {
                   "settings-lang-pill" +
                   (langValue === lang.code ? " settings-lang-pill-active" : "")
                 }
-                onClick={() => handleChangeLang(lang.code)}
+                onClick={() => handleChangeLang(lang)}
               >
                 {lang.label}
               </button>
             ))}
-          </div> */}
+          </div>
         </div>
         <button
           type="button"

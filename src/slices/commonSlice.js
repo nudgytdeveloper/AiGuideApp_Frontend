@@ -9,6 +9,7 @@ const initialState = fromJS({
   popUp: [],
   isLoading: true,
   isLiveFeedEnabled: false,
+  language: "en-US"
 })
 
 const commonSlice = createSlice({
@@ -30,25 +31,32 @@ const commonSlice = createSlice({
     setPageType: (state, action) => {
       return state.merge(
         fromJS({
-          selectedPageType: action.payload,
+          selectedPageType: action.payload
         })
       )
     },
     setIsLoading: (state, action) => {
       return state.merge(
         fromJS({
-          ...action.payload,
+          ...action.payload
         })
       )
     },
     setIsLiveFeedEnabled: (state, action) => {
       return state.merge(
         fromJS({
-          isLiveFeedEnabled: action.payload,
+          isLiveFeedEnabled: action.payload
         })
       )
     },
-  },
+    setLanguage: (state, action) => {
+      return state.merge(
+        fromJS({
+          language: action.payload
+        })
+      )
+    }
+  }
 })
 
 export const {
@@ -59,6 +67,7 @@ export const {
   setPageType,
   setIsLoading,
   setIsLiveFeedEnabled,
+  setLanguage
 } = commonSlice.actions
 
 export default commonSlice.reducer
