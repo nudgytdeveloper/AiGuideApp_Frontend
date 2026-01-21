@@ -12,7 +12,7 @@ const RecenterButton = () => {
       e.stopPropagation()
       if (!mapView) return
       // recenter to current position
-      if (position?.latitude && position?.longitude && position?.floorId) {
+      if (position?.latitude && position?.longitude) {
         mapView.Camera.animateTo(
           { center: position, zoomLevel: 20 },
           { duration: 1000 }
