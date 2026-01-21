@@ -85,7 +85,6 @@ const BottomPanel = () => {
       const recognition = new SpeechRecognition()
       recognition.continuous = false
       recognition.interimResults = false
-      console.log("lang code:", selectedLang?.get("code"))
       recognition.lang = selectedLang ? selectedLang.get("code") : "en-US"
 
       recognition.onstart = () => {

@@ -15,7 +15,7 @@ const MapOverlay = () => {
     return [
       state.detection.get("exhibit"),
       navState.get("position"),
-      navState.get("destination"),
+      navState.get("destination")
     ]
   }, ArrayEqual)
   const YOU_ARE_HERE_NAME = "You're here"
@@ -45,7 +45,7 @@ const MapOverlay = () => {
 
     spaces.forEach((space) => {
       mapView.updateState(space, {
-        interactive: true,
+        interactive: true
       })
     })
   }, [mapView, spaces])
@@ -64,7 +64,7 @@ const MapOverlay = () => {
           try {
             directions = await mapView.getDirections({
               from: position,
-              to: space.center,
+              to: space.center
             })
           } catch {
             // fallback signature
@@ -75,7 +75,7 @@ const MapOverlay = () => {
             dispatch(
               openPopUp({
                 popupType: Success,
-                message: "This space is not accessible..",
+                message: "This space is not accessible.."
               })
             )
             console.warn("No directions returned.")
@@ -88,7 +88,7 @@ const MapOverlay = () => {
           dispatch(
             openPopUp({
               popupType: Error,
-              message: "Error while getting directions..",
+              message: "Error while getting directions.."
             })
           )
           console.error("Error while getting directions:", err)
@@ -109,10 +109,10 @@ const MapOverlay = () => {
     // console.debug("position: ", position)
     // TODO: change to exibhit hall mapping in future when full dataset trained.
     const candidate = position
-    console.debug("CANDIDATE: ", candidate)
+    console.log("CANDIDATE: ", candidate)
     if (candidate) {
       startCoordRef.current = candidate
-      console.debug("Fixed start set at:", candidate)
+      console.log("Fixed start set at:", candidate)
     } else {
       // dispatch(
       //   openPopUp({
@@ -163,6 +163,8 @@ const MapOverlay = () => {
       const clickedSpace = event?.spaces?.[0]
       const spaceName = clickedSpace?.name || "(Space)"
       const spaceCoord = clickedSpace?.center || null
+      console.log("space name: ", spaceName)
+      console.log("poi: ", poiName)
 
       const targetCoord = poiCoord || spaceCoord
       const targetName = poiCoord ? poiName : spaceName
@@ -199,7 +201,7 @@ const MapOverlay = () => {
         try {
           directions = await mapView.getDirections({
             from: startCoordRef.current,
-            to: targetCoord,
+            to: targetCoord
           })
         } catch {
           directions = await mapView.getDirections(
@@ -212,7 +214,7 @@ const MapOverlay = () => {
           dispatch(
             openPopUp({
               popupType: Success,
-              message: "This space is not accessible..",
+              message: "This space is not accessible.."
             })
           )
           console.warn("No directions returned.")
@@ -240,13 +242,14 @@ const MapOverlay = () => {
         >
           <div
             style={{
+              pointerEvents: "none",
               borderRadius: "10px",
               padding: "5px",
               boxShadow: "0px 0px 1px rgba(0, 0, 0, 0.25)",
               fontFamily: "sans-serif",
               fontSize: "11px",
               lineHeight: 1.2,
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {space.name}
@@ -258,6 +261,7 @@ const MapOverlay = () => {
         <Marker key={poi.id} target={poi} options={{ interactive: true }}>
           <div
             style={{
+              pointerEvents: "none",
               borderRadius: "8px",
               backgroundColor: "#000",
               color: "#fff",
@@ -265,7 +269,7 @@ const MapOverlay = () => {
               fontFamily: "sans-serif",
               fontSize: "10px",
               lineHeight: 1.2,
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {poi.name}
