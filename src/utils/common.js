@@ -38,21 +38,28 @@ export function extractJson(text) {
     return null
   }
 }
-function buildLoosePattern(word) {
-  return word.split("").join("[^a-zA-Z]*")
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function buildLoosePattern(word, { maxGap = 2 } = {}) {
+  const clean = escapeRegExp(word)
+  // allow up to N non-letters between letters (prevents spanning across sentences)
+  const gap = `[^a-zA-Z]{0,${maxGap}}`
+  const core = clean.split("").join(gap)
+
+  // boundaries: not preceded/followed by a letter
+  return `(?<![a-zA-Z])${core}(?![a-zA-Z])`
 }
 
 export function censorBadWords(text = "") {
   let result = text
 
   BAD_WORDS.forEach((word) => {
-    const loosePattern = buildLoosePattern(word)
-    const regex = new RegExp(loosePattern, "gi")
+    const pattern = buildLoosePattern(word, { maxGap: 2 })
+    const regex = new RegExp(pattern, "gi")
 
-    result = result.replace(regex, (match) => {
-      // Replace the entire detected segment with **** of proper length
-      return "*".repeat(word.length)
-    })
+    result = result.replace(regex, (match) => "*".repeat(match.length))
   })
 
   return result
