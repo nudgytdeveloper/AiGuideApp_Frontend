@@ -126,9 +126,9 @@
 
 /* Floating action buttons */
 .action-buttons {
-  position: absolute;
+  position: fixed;
   right: 0px;
-  bottom: 240px;
+  bottom: 290px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -241,6 +241,16 @@
 .send-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+:root {
+  --chatbox-h: 61.5px; /* your measured footer.chat-box height */
+}
+
+/* Reserve space even when chat-box is not rendered */
+.chat-slot {
+  flex: 0 0 var(--chatbox-h);
+  height: var(--chatbox-h);
 }
 
 /* Microphone Button */

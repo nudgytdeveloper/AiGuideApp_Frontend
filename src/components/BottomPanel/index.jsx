@@ -318,43 +318,47 @@ ENGAGEMENT STRATEGIES:
           onNavigate={handleNavigateClick}
         />
       ) : null}
-      <footer className="chat-box">
-        <div className="input-wrapper">
-          <input
-            id="chatbox"
-            name="chatbox"
-            type="text"
-            placeholder="Type your message..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isProcessing}
-          />
-          {inputValue.trim().length > 0 && (
+      {selectedPageType == AIChat ? (
+        <div className="chat-slot">
+          <footer className="chat-box">
+            <div className="input-wrapper">
+              <input
+                id="chatbox"
+                name="chatbox"
+                type="text"
+                placeholder="Type your message..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isProcessing}
+              />
+              {inputValue.trim().length > 0 && (
+                <button
+                  className="send-btn"
+                  onClick={handleTextSubmit}
+                  disabled={isProcessing}
+                >
+                  ▶
+                </button>
+              )}
+            </div>
+
             <button
-              className="send-btn"
-              onClick={handleTextSubmit}
+              className={`mic-btn ${isListening ? "listening" : ""} ${
+                isProcessing ? "processing" : ""
+              } ${isListening || isProcessing ? "running" : ""}`}
+              onClick={startListening}
               disabled={isProcessing}
             >
-              ▶
+              {isListening ? (
+                <span className="stop-icon" />
+              ) : (
+                <img src={micIcon} alt="Mic" />
+              )}
             </button>
-          )}
+          </footer>
         </div>
-
-        <button
-          className={`mic-btn ${isListening ? "listening" : ""} ${
-            isProcessing ? "processing" : ""
-          } ${isListening || isProcessing ? "running" : ""}`}
-          onClick={startListening}
-          disabled={isProcessing}
-        >
-          {isListening ? (
-            <span className="stop-icon" />
-          ) : (
-            <img src={micIcon} alt="Mic" />
-          )}
-        </button>
-      </footer>
+      ) : null}
     </>
   )
 }
