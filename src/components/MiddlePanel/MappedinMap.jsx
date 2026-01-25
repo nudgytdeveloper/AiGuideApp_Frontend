@@ -4,12 +4,14 @@ import MapOverlay from "@nrs/components/MiddlePanel/navigation/MapOverlay"
 import MyBlueDot from "@nrs/components/MiddlePanel/navigation/MyBlueDot"
 import FloorSwitcher from "@nrs/components/MiddlePanel/navigation/FloorSwitcher"
 import RecenterButton from "@nrs/components/MiddlePanel/navigation/RecenterButton"
+import { NavigationMap } from "@nrs/constants/MapMode"
+import MissionModeMap from "@nrs/components/MiddlePanel/mission/MissionModeMap"
 
-const MappedinMap = () => {
+const MappedinMap = ({ mapMode = NavigationMap }) => {
   const { isLoading, error, mapData } = useMapData({
     key: "mik_DUwlsWsBypbdww8je5ad50840", // mik_xxx
     secret: "mis_dylRwkoXQb3ocvaZURE20d0wQLJ6BgEINpYw9t9EQNy9a0b1054", // mis_xxx
-    mapId: "68edec68d24915000bbf8757", // map id
+    mapId: "68edec68d24915000bbf8757" // map id
   })
 
   if (isLoading) {
@@ -25,14 +27,20 @@ const MappedinMap = () => {
         mapData={mapData}
         style={{
           height: "100%",
-          width: "100%",
+          width: "100%"
         }}
       >
         <div className="map-ui-layer">
-          <MyBlueDot />
-          <FloorSwitcher />
-          <MapOverlay />
-          <RecenterButton />
+          {mapMode == NavigationMap ? (
+            <>
+              <MyBlueDot />
+              <FloorSwitcher />
+              <MapOverlay />
+              <RecenterButton />
+            </>
+          ) : (
+            <MissionModeMap />
+          )}
         </div>
       </MapView>
     </div>

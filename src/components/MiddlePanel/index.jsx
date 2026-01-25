@@ -10,6 +10,7 @@ import { useCallback } from "react"
 import LiveScan from "@nrs/components/MiddlePanel/LiveScan"
 import MappedinMap from "@nrs/components/MiddlePanel/MappedinMap"
 import LiveFeed from "@nrs/components/LiveFeed"
+import { MissionMap } from "@nrs/constants/MapMode"
 
 const MiddlePanel = () => {
   const dispatch = useDispatch(),
@@ -17,7 +18,7 @@ const MiddlePanel = () => {
       const commonState = state.common
       return [
         commonState.get("selectedPageType"),
-        commonState.get("isLiveFeedEnabled"),
+        commonState.get("isLiveFeedEnabled")
       ]
     }, ArrayEqual)
 
@@ -36,7 +37,8 @@ const MiddlePanel = () => {
       ) : selectedPageType == Navigation ? (
         <MappedinMap />
       ) : (
-        <LiveScan />
+        // <LiveScan />
+        <MappedinMap mapMode={MissionMap} />
       )}
       {selectedPageType == AIChat && isLiveFeedEnabled ? (
         <div className="video-preview">{<LiveFeed />}</div>
