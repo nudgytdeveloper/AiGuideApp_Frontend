@@ -51,9 +51,8 @@ export default function MissionHighlights({ zones, completed }) {
   }, [spaces])
 
   useEffect(() => {
-    // v6 guard
     const shapesApi = mapView?.Shapes
-    if (!shapesApi?.add || !shapesApi?.remove) return
+    if (!mapView || !shapesApi?.add || !shapesApi?.remove) return
 
     // cleanup existing
     for (const sh of shapesRef.current) {
@@ -82,9 +81,18 @@ export default function MissionHighlights({ zones, completed }) {
           altitude: 0.15
         })
 
-        // Some versions return a single handle, others return an array
-        if (Array.isArray(added)) shapesRef.current.push(...added)
-        else if (added) shapesRef.current.push(added)
+        const handles = Array.isArray(added) ? added : added ? [added] : []
+        if (handles.length === 0) continue
+
+        // ✅ CRITICAL FIX:
+        // Shapes can block picking -> make them NOT interactive
+        for (const h of handles) {
+          try {
+            mapView.updateState(h, { interactive: false })
+          } catch {}
+        }
+
+        shapesRef.current.push(...handles)
       } catch (e) {
         console.warn(
           "[MissionHighlights] Shapes.add failed for:",
@@ -102,7 +110,7 @@ export default function MissionHighlights({ zones, completed }) {
       }
       shapesRef.current = []
     }
-  }, [mapView, zones, spaceByName, completed])
+  }, [mapView, mapData, zones, spaceByName, completed])
 
   return null
 }

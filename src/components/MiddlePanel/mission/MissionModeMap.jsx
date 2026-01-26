@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useCallback, useRef, useEffect } from "react"
+import React, { useMemo, useState, useCallback, useEffect } from "react"
 import confetti from "canvas-confetti"
+import { useMap, useMapViewEvent } from "@mappedin/react-sdk"
 import MissionMarkers from "@nrs/components/MiddlePanel/mission/MissionMarkers"
 import MissionHUD from "@nrs/components/MiddlePanel/mission/MissionHUD"
-import "@nrs/css/Mission.css"
 import MissionHighlights from "@nrs/components/MiddlePanel/mission/MissionHighlights"
+import "@nrs/css/Mission.css"
 
 const DEFAULT_MISSION = {
   id: "mission-space-scientist",
@@ -44,16 +45,155 @@ const DEFAULT_MISSION = {
   ]
 }
 
+function norm(s) {
+  return String(s || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+}
+
+/**
+ * Extract polygons from GeoJSON (Polygon | MultiPolygon | Feature | FeatureCollection)
+ * Returns: Array of polygons, each polygon = Array of rings, ring = Array<[lng,lat]>
+ */
+function extractPolygons(geojson) {
+  if (!geojson) return []
+  const feats =
+    geojson.type === "FeatureCollection"
+      ? geojson.features || []
+      : geojson.type === "Feature"
+        ? [geojson]
+        : geojson.type && geojson.coordinates
+          ? [{ type: "Feature", properties: {}, geometry: geojson }]
+          : []
+
+  const polys = []
+  for (const f of feats) {
+    const g = f?.geometry
+    if (!g) continue
+
+    if (g.type === "Polygon") {
+      polys.push(g.coordinates) // [ring1, ring2...]
+    } else if (g.type === "MultiPolygon") {
+      for (const poly of g.coordinates) polys.push(poly)
+    }
+  }
+  return polys
+}
+
+/** Ray-casting point-in-ring. ring is Array<[lng,lat]> */
+function pointInRing(lng, lat, ring) {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0],
+      yi = ring[i][1]
+    const xj = ring[j][0],
+      yj = ring[j][1]
+
+    const intersect =
+      yi > lat !== yj > lat &&
+      lng < ((xj - xi) * (lat - yi)) / (yj - yi + 0.0) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+/**
+ * Point in polygon with holes:
+ * - inside outer ring
+ * - NOT inside any hole rings
+ */
+function pointInPolygon(lng, lat, polygonRings) {
+  if (!polygonRings?.length) return false
+  const outer = polygonRings[0]
+  if (!pointInRing(lng, lat, outer)) return false
+  for (let h = 1; h < polygonRings.length; h++) {
+    if (pointInRing(lng, lat, polygonRings[h])) return false
+  }
+  return true
+}
+
+function pointInAnyGeoJSON(lng, lat, geojson) {
+  const polys = extractPolygons(geojson)
+  for (const polyRings of polys) {
+    if (pointInPolygon(lng, lat, polyRings)) return true
+  }
+  return false
+}
+
 const MissionModeMap = () => {
   const mission = DEFAULT_MISSION
+  const { mapView, mapData } = useMap()
+
   const [activeZoneId, setActiveZoneId] = useState(null)
-  const [completed, setCompleted] = useState(() => new Set()) // zoneIds
-  const [lastFeedback, setLastFeedback] = useState(null) // { type, title, text }
-  const mapRootRef = useRef(null)
+  const [completed, setCompleted] = useState(() => new Set())
+  const [lastFeedback, setLastFeedback] = useState(null)
 
   const completedCount = completed.size
   const total = mission.zones.length
   const allDone = completedCount === total
+
+  const spaces = useMemo(() => {
+    if (!mapData) return []
+    return mapData.getByType("space")?.filter((s) => s?.name) || []
+  }, [mapData])
+
+  const spaceByName = useMemo(() => {
+    const m = new Map()
+    for (const s of spaces) m.set(norm(s.name), s)
+    return m
+  }, [spaces])
+
+  const missionSpaceByZoneId = useMemo(() => {
+    const m = new Map()
+    for (const z of mission.zones) {
+      const targetName = z.spaceName || z.label
+      const sp = spaceByName.get(norm(targetName))
+      if (sp) m.set(z.id, sp)
+    }
+    return m
+  }, [mission.zones, spaceByName])
+
+  // only mission spaces interactive
+  useEffect(() => {
+    if (!mapView) return
+    // turn off all
+    for (const s of spaces) {
+      try {
+        mapView.updateState(s, { interactive: false })
+      } catch {}
+    }
+    // turn on mission only
+    for (const z of mission.zones) {
+      const sp = missionSpaceByZoneId.get(z.id)
+      if (sp) {
+        try {
+          mapView.updateState(sp, { interactive: true })
+        } catch {}
+      }
+    }
+  }, [mapView, spaces, mission.zones, missionSpaceByZoneId])
+
+  useEffect(() => {
+    if (!mapView) return
+    const position = {
+      latitude: 1.3326774043321263,
+      longitude: 103.73591848407528
+    }
+    if (position?.latitude && position?.longitude) {
+      mapView.Camera.animateTo(
+        { center: position, zoomLevel: 18 },
+        { duration: 1000 }
+      )
+    }
+  }, [mapView])
+
+  const closeModal = () => setActiveZoneId(null)
+
+  const activeZone = useMemo(
+    () => mission.zones.find((z) => z.id === activeZoneId) || null,
+    [activeZoneId, mission.zones]
+  )
 
   const openZone = useCallback(
     (zoneId) => {
@@ -65,17 +205,100 @@ const MissionModeMap = () => {
         })
         return
       }
-      setActiveZoneId(zoneId)
-      setLastFeedback(null)
+      setTimeout(() => {
+        setActiveZoneId(zoneId)
+        setLastFeedback(null)
+      }, 1000)
     },
     [completed]
   )
 
-  const closeModal = () => setActiveZoneId(null)
+  const zoomToSpace = useCallback(
+    (space) => {
+      if (!mapView?.Camera?.animateTo || !space) return
 
-  const activeZone = useMemo(
-    () => mission.zones.find((z) => z.id === activeZoneId) || null,
-    [activeZoneId, mission.zones]
+      // Prefer space.center; fallback to focusTarget / anchorTarget
+      const focus =
+        space.center || space.focusTarget || space.anchorTarget || null
+
+      // Tune this zoom level to taste
+      const zoom = 19.5
+
+      try {
+        mapView.Camera.animateTo({
+          center: focus,
+          zoomLevel: zoom
+        })
+      } catch (e) {
+        // Some SDK builds have slightly different signatures; keep it safe
+        try {
+          mapView.Camera.animateTo({ center: focus, zoomLevel: zoom })
+        } catch {}
+      }
+    },
+    [mapView]
+  )
+
+  const zoomAndOpenZone = useCallback(
+    (zoneId, space) => {
+      zoomToSpace(space)
+      openZone(zoneId)
+    },
+    [zoomToSpace, openZone]
+  )
+
+  const resolveZoneFromSpace = useCallback(
+    (space) => {
+      if (!space) return null
+      // fastest: id match
+      for (const z of mission.zones) {
+        const sp = missionSpaceByZoneId.get(z.id)
+        if (sp && sp.id === space.id) return z
+      }
+      // fallback: name match
+      const n = norm(space.name)
+      return (
+        mission.zones.find((z) => norm(z.spaceName || z.label) === n) || null
+      )
+    },
+    [mission.zones, missionSpaceByZoneId]
+  )
+
+  useMapViewEvent(
+    "click",
+    (event) => {
+      const clickedMarker = event?.markers?.[0]
+      if (clickedMarker?.target && clickedMarker.target.__type === "space") {
+        const zone = resolveZoneFromSpace(clickedMarker.target)
+        if (zone) {
+          zoomAndOpenZone(zone.id, clickedMarker.target)
+          return
+        }
+      }
+
+      const clickedSpace = event?.spaces?.[0]
+      if (clickedSpace) {
+        const zone = resolveZoneFromSpace(clickedSpace)
+        if (zone) {
+          zoomAndOpenZone(zone.id, clickedSpace)
+          return
+        }
+      }
+
+      //click on highlight overlay (Shapes layer blocks hit results)
+      const c = event?.coordinate
+      if (!c?.longitude || !c?.latitude) return
+
+      for (const z of mission.zones) {
+        const sp = missionSpaceByZoneId.get(z.id)
+        if (!sp?.geoJSON) continue
+        if (pointInAnyGeoJSON(c.longitude, c.latitude, sp.geoJSON)) {
+          zoomAndOpenZone(z.id, sp)
+          return
+        }
+      }
+    },
+    [mission.zones, missionSpaceByZoneId, resolveZoneFromSpace, zoomAndOpenZone]
   )
 
   const onAnswer = (index) => {
@@ -87,7 +310,6 @@ const MissionModeMap = () => {
       next.add(activeZone.id)
       setCompleted(next)
 
-      // confetti burst
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } })
 
       setLastFeedback({
@@ -111,12 +333,10 @@ const MissionModeMap = () => {
       title: "Mission Completed 🏅",
       text: "Badge unlocked! You’re officially a Space Scientist."
     })
-    // TODO: persist progress + push to leaderboard endpoint
   }
 
   return (
     <>
-      {/* Map UI Layer */}
       <div className="mission-map-layer">
         <MissionHUD
           title={mission.title}
@@ -131,7 +351,7 @@ const MissionModeMap = () => {
         <MissionMarkers
           zones={mission.zones}
           completed={completed}
-          onZonePress={openZone}
+          onZonePress={() => {}}
         />
 
         {activeZone ? (

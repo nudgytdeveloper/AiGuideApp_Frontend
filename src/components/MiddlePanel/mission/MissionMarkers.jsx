@@ -1,5 +1,5 @@
 import { Marker, useMap } from "@mappedin/react-sdk"
-import React, { useEffect, useMemo } from "react"
+import React, { useMemo } from "react"
 
 function norm(s) {
   return String(s || "")
@@ -8,7 +8,7 @@ function norm(s) {
     .toLowerCase()
 }
 
-const MissionMarkers = ({ zones, completed, onZonePress }) => {
+const MissionMarkers = ({ zones, completed }) => {
   const { mapData } = useMap()
 
   const spaces = useMemo(() => {
@@ -27,21 +27,12 @@ const MissionMarkers = ({ zones, completed, onZonePress }) => {
       {zones.map((z) => {
         const targetName = z.spaceName || z.label
         const space = spaceByName.get(norm(targetName))
-
-        if (!space) {
-          console.warn("[MissionMarkers] Space not found:", targetName)
-          return null
-        }
+        if (!space) return null
 
         const done = completed.has(z.id)
 
         return (
-          <Marker
-            key={z.id}
-            target={space}
-            onClick={() => onZonePress(z.id)}
-            options={{ interactive: true }}
-          >
+          <Marker key={z.id} target={space} options={{ interactive: true }}>
             <div className={`zone-marker ${done ? "done" : ""}`}>
               <div className="label">{z.label}</div>
             </div>
