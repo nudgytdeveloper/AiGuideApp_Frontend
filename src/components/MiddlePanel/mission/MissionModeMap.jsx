@@ -218,7 +218,7 @@ const MissionModeMap = () => {
       setTimeout(() => {
         setActiveZoneId(zoneId)
         setLastFeedback(null)
-      }, 250)
+      }, 100)
     },
     [completed]
   )
