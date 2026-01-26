@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react"
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react"
 import confetti from "canvas-confetti"
 import { useMap, useMapViewEvent } from "@mappedin/react-sdk"
 import MissionMarkers from "@nrs/components/MiddlePanel/mission/MissionMarkers"
@@ -122,6 +122,15 @@ function pointInAnyGeoJSON(lng, lat, geojson) {
   return false
 }
 
+// haptics helpers
+const canVibrate =
+  typeof navigator !== "undefined" && typeof navigator.vibrate === "function"
+function vibrate(pattern) {
+  try {
+    if (canVibrate) navigator.vibrate(pattern)
+  } catch {}
+}
+
 const MissionModeMap = () => {
   const mission = DEFAULT_MISSION
   const { mapView, mapData } = useMap()
@@ -130,6 +139,13 @@ const MissionModeMap = () => {
   const [completed, setCompleted] = useState(() => new Set())
   const [lastFeedback, setLastFeedback] = useState(null)
   const [showBadge, setShowBadge] = useState(false)
+
+  //shake state for wrong answers
+  const [shakeModal, setShakeModal] = useState(false)
+  const shakeTimerRef = useRef(null)
+
+  // auto-hide toast timer (keeps UI clean + avoids covering)
+  const toastTimerRef = useRef(null)
 
   const completedCount = completed.size
   const total = mission.zones.length
@@ -155,6 +171,14 @@ const MissionModeMap = () => {
     }
     return m
   }, [mission.zones, spaceByName])
+
+  // cleanup timers
+  useEffect(() => {
+    return () => {
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current)
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
 
   // only mission spaces interactive
   useEffect(() => {
@@ -198,21 +222,46 @@ const MissionModeMap = () => {
     }
   }, [completed, mission.zones.length])
 
-  const closeModal = () => setActiveZoneId(null)
+  const closeModal = () => {
+    setActiveZoneId(null)
+    setShakeModal(false)
+  }
 
   const activeZone = useMemo(
     () => mission.zones.find((z) => z.id === activeZoneId) || null,
     [activeZoneId, mission.zones]
   )
 
+  // show toast with optional auto-hide
+  const showFeedback = useCallback((payload, autoHideMs = 0) => {
+    setLastFeedback(payload)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    if (autoHideMs > 0) {
+      toastTimerRef.current = setTimeout(
+        () => setLastFeedback(null),
+        autoHideMs
+      )
+    }
+  }, [])
+
+  // trigger shake
+  const triggerShake = useCallback(() => {
+    setShakeModal(true)
+    if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current)
+    shakeTimerRef.current = setTimeout(() => setShakeModal(false), 520)
+  }, [])
+
   const openZone = useCallback(
     (zoneId) => {
       if (completed.has(zoneId)) {
-        setLastFeedback({
-          type: "info",
-          title: "Already completed!",
-          text: "Pick another zone 👀"
-        })
+        showFeedback(
+          {
+            type: "info",
+            title: "Already completed!",
+            text: "Pick another zone 👀"
+          },
+          4000
+        )
         return
       }
       setTimeout(() => {
@@ -220,7 +269,7 @@ const MissionModeMap = () => {
         setLastFeedback(null)
       }, 100)
     },
-    [completed]
+    [completed, showFeedback]
   )
 
   const zoomToSpace = useCallback(
@@ -319,29 +368,40 @@ const MissionModeMap = () => {
       setCompleted(next)
 
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } })
-
-      setLastFeedback({
-        type: "success",
-        title: "Correct! 🎉",
-        text: activeZone.funFact
-      })
+      vibrate(20)
+      showFeedback(
+        {
+          type: "success",
+          title: "Correct! 🎉",
+          text: activeZone.funFact
+        },
+        8000
+      )
       setActiveZoneId(null)
     } else {
-      setLastFeedback({
-        type: "error",
-        title: "Almost!",
-        text: activeZone.wrongHint
-      })
+      // wrong answer feedback = shake + vibrate + toast (auto-hide)
+      triggerShake()
+      vibrate([30, 40, 30])
+      showFeedback(
+        {
+          type: "error",
+          title: "Almost!",
+          text: activeZone.wrongHint
+        },
+        6000
+      )
     }
   }
 
   const onFinish = () => {
-    setLastFeedback({
-      type: "success",
-      title: "Mission Completed 🏅",
-      text: "Badge unlocked! You’re officially a Space Scientist."
-    })
-    // setLastFeedback(null)
+    showFeedback(
+      {
+        type: "success",
+        title: "Mission Completed 🏅",
+        text: "Badge unlocked! You’re officially a Space Scientist."
+      },
+      10000
+    )
     setShowBadge(true)
   }
 
@@ -362,7 +422,7 @@ const MissionModeMap = () => {
           allDone={allDone}
           onFinish={onFinish}
         />
-        {lastFeedback ? <Toast feedback={lastFeedback} /> : null}
+
         <MissionHighlights zones={mission.zones} completed={completed} />
         <MissionMarkers
           zones={mission.zones}
@@ -377,17 +437,24 @@ const MissionModeMap = () => {
             options={activeZone.options}
             onClose={closeModal}
             onAnswer={onAnswer}
+            shake={shakeModal}
           />
+        ) : null}
+        {lastFeedback ? (
+          <Toast feedback={lastFeedback} top={!!activeZone} />
         ) : null}
       </div>
     </>
   )
 }
 
-function QuestionModal({ title, question, options, onClose, onAnswer }) {
+function QuestionModal({ title, question, options, onClose, onAnswer, shake }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`modal ${shake ? "shake" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <div className="modal-title">{title}</div>
           <button className="x" onClick={onClose}>
@@ -409,9 +476,19 @@ function QuestionModal({ title, question, options, onClose, onAnswer }) {
   )
 }
 
-function Toast({ feedback }) {
+function Toast({ feedback, top }) {
+  const style = top
+    ? {
+        top: `calc(12px + env(safe-area-inset-top))`,
+        bottom: "auto",
+        zIndex: 9999,
+        maxWidth: 520,
+        margin: "0 auto"
+      }
+    : { zIndex: 9999 }
+
   return (
-    <div className={`toast ${feedback.type}`}>
+    <div className={`toast ${feedback.type}`} style={style}>
       <div className="toast-title">{feedback.title}</div>
       <div className="toast-text">{feedback.text}</div>
     </div>
