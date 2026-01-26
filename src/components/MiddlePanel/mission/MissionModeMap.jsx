@@ -186,6 +186,8 @@ const MissionModeMap = () => {
         { duration: 1000 }
       )
     }
+    mapView.Camera.setMinZoomLevel(17.5)
+    mapView.Camera.setMaxZoomLevel(20)
   }, [mapView])
 
   const closeModal = () => setActiveZoneId(null)
