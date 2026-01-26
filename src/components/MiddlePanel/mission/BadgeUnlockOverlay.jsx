@@ -44,16 +44,13 @@ export default function BadgeUnlockOverlay({
   if (!open) return null
 
   return (
-    <div className="badgeUnlock-backdrop" role="dialog" aria-modal="true">
+    <div
+      className="badgeUnlock-backdrop"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
       <div className="badgeUnlock-card">
-        <button
-          className="badgeUnlock-close"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ✕
-        </button>
-
         <div className="badgeUnlock-badgeWrap">
           <div className="badgeUnlock-badge">
             <div className="badgeUnlock-shine" />

@@ -139,7 +139,11 @@ const MissionModeMap = () => {
   const [completed, setCompleted] = useState(() => new Set())
   const [lastFeedback, setLastFeedback] = useState(null)
   const [showBadge, setShowBadge] = useState(false)
-  const [wrongFlash, setWrongFlash] = useState(null) // format: { idx: number, nonce: number } or nul
+  const [wrongFlash, setWrongFlash] = useState(null) // format: { idx: number, nonce: number } or null
+
+  // top-layer confetti canvas
+  const confettiCanvasRef = useRef(null)
+  const confettiInstanceRef = useRef(null)
 
   //shake state for wrong answers
   const [shakeModal, setShakeModal] = useState(false)
@@ -172,6 +176,35 @@ const MissionModeMap = () => {
     }
     return m
   }, [mission.zones, spaceByName])
+
+  //init confetti instance once when canvas is available
+  useEffect(() => {
+    const canvas = confettiCanvasRef.current
+    if (!canvas) return
+    if (confettiInstanceRef.current) return
+    try {
+      confettiInstanceRef.current = confetti.create(canvas, {
+        resize: true,
+        useWorker: true
+      })
+    } catch {
+      confettiInstanceRef.current = null
+    }
+  }, [])
+
+  // helper to fire confetti on the top canvas (fallback to default)
+  const fireConfetti = useCallback((opts) => {
+    const inst = confettiInstanceRef.current
+    if (inst) {
+      try {
+        inst(opts)
+        return
+      } catch {}
+    }
+    try {
+      confetti(opts)
+    } catch {}
+  }, [])
 
   // cleanup timers
   useEffect(() => {
@@ -370,7 +403,14 @@ const MissionModeMap = () => {
       next.add(activeZone.id)
       setCompleted(next)
 
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } })
+      // confetti always on top (via fixed canvas)
+      fireConfetti({
+        particleCount: 140,
+        spread: 80,
+        startVelocity: 45,
+        origin: { y: 0.6 }
+      })
+
       vibrate(20)
       showFeedback(
         {
@@ -449,6 +489,13 @@ const MissionModeMap = () => {
           <Toast feedback={lastFeedback} top={!!activeZone} />
         ) : null}
       </div>
+
+      {/*fixed top-layer confetti canvas (always above badge/modal/map) */}
+      <canvas
+        ref={confettiCanvasRef}
+        className="confetti-canvas"
+        aria-hidden="true"
+      />
     </>
   )
 }
