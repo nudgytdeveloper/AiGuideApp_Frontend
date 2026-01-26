@@ -139,6 +139,7 @@ const MissionModeMap = () => {
   const [completed, setCompleted] = useState(() => new Set())
   const [lastFeedback, setLastFeedback] = useState(null)
   const [showBadge, setShowBadge] = useState(false)
+  const [wrongFlash, setWrongFlash] = useState(null) // format: { idx: number, nonce: number } or nul
 
   //shake state for wrong answers
   const [shakeModal, setShakeModal] = useState(false)
@@ -225,6 +226,7 @@ const MissionModeMap = () => {
   const closeModal = () => {
     setActiveZoneId(null)
     setShakeModal(false)
+    setWrongFlash(null)
   }
 
   const activeZone = useMemo(
@@ -267,6 +269,7 @@ const MissionModeMap = () => {
       setTimeout(() => {
         setActiveZoneId(zoneId)
         setLastFeedback(null)
+        setWrongFlash(null)
       }, 100)
     },
     [completed, showFeedback]
@@ -380,6 +383,7 @@ const MissionModeMap = () => {
       setActiveZoneId(null)
     } else {
       // wrong answer feedback = shake + vibrate + toast (auto-hide)
+      setWrongFlash({ idx: index, nonce: Date.now() })
       triggerShake()
       vibrate([30, 40, 30])
       showFeedback(
@@ -438,6 +442,7 @@ const MissionModeMap = () => {
             onClose={closeModal}
             onAnswer={onAnswer}
             shake={shakeModal}
+            wrongFlash={wrongFlash}
           />
         ) : null}
         {lastFeedback ? (
@@ -448,7 +453,15 @@ const MissionModeMap = () => {
   )
 }
 
-function QuestionModal({ title, question, options, onClose, onAnswer, shake }) {
+function QuestionModal({
+  title,
+  question,
+  options,
+  onClose,
+  onAnswer,
+  shake,
+  wrongFlash
+}) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
@@ -465,11 +478,20 @@ function QuestionModal({ title, question, options, onClose, onAnswer, shake }) {
         <div className="q">{question}</div>
 
         <div className="opts">
-          {options.map((opt, idx) => (
-            <button key={opt} className="opt" onClick={() => onAnswer(idx)}>
-              {opt}
-            </button>
-          ))}
+          {options.map((opt, idx) => {
+            const isWrong = wrongFlash?.idx === idx
+            const k = `${opt}-${idx}-${isWrong ? wrongFlash.nonce : 0}`
+
+            return (
+              <button
+                key={k}
+                className={`opt ${isWrong ? "wrong" : ""}`}
+                onClick={() => onAnswer(idx)}
+              >
+                {opt}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
