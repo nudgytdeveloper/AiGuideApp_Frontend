@@ -136,7 +136,15 @@ const MissionModeMap = () => {
   const { mapView, mapData } = useMap()
 
   const [activeZoneId, setActiveZoneId] = useState(null)
-  const [completed, setCompleted] = useState(() => new Set())
+  const [completed, setCompleted] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem("completed")
+      const arr = raw ? JSON.parse(raw) : []
+      return new Set(Array.isArray(arr) ? arr : [])
+    } catch {
+      return new Set()
+    }
+  })
   const [lastFeedback, setLastFeedback] = useState(null)
   const [showBadge, setShowBadge] = useState(false)
   const [wrongFlash, setWrongFlash] = useState(null) // format: { idx: number, nonce: number } or null
@@ -154,7 +162,8 @@ const MissionModeMap = () => {
 
   const completedCount = completed.size
   const total = mission.zones.length
-  const allDone = completedCount === total
+  const isQuizDoneBefore = sessionStorage.getItem("quizDone") === true
+  const allDone = completedCount === total || isQuizDoneBefore
 
   const spaces = useMemo(() => {
     if (!mapData) return []
@@ -254,6 +263,14 @@ const MissionModeMap = () => {
     if (completed.size === mission.zones.length && mission.zones.length > 0) {
       setShowBadge(true)
     }
+  }, [completed, mission.zones.length])
+
+  useEffect(() => {
+    sessionStorage.setItem("completed", JSON.stringify([...completed]))
+    sessionStorage.setItem(
+      "quizDone",
+      String(completed.size === mission.zones.length)
+    )
   }, [completed, mission.zones.length])
 
   const closeModal = () => {
