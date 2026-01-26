@@ -388,7 +388,7 @@ const MissionModeMap = () => {
           title: "Almost!",
           text: activeZone.wrongHint
         },
-        6000
+        4000
       )
     }
   }
