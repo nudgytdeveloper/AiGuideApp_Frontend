@@ -5,6 +5,7 @@ import MissionMarkers from "@nrs/components/MiddlePanel/mission/MissionMarkers"
 import MissionHUD from "@nrs/components/MiddlePanel/mission/MissionHUD"
 import MissionHighlights from "@nrs/components/MiddlePanel/mission/MissionHighlights"
 import "@nrs/css/Mission.css"
+import BadgeUnlockOverlay from "@nrs/components/MiddlePanel/mission/BadgeUnlockOverlay"
 
 const DEFAULT_MISSION = {
   id: "mission-space-scientist",
@@ -128,6 +129,7 @@ const MissionModeMap = () => {
   const [activeZoneId, setActiveZoneId] = useState(null)
   const [completed, setCompleted] = useState(() => new Set())
   const [lastFeedback, setLastFeedback] = useState(null)
+  const [showBadge, setShowBadge] = useState(false)
 
   const completedCount = completed.size
   const total = mission.zones.length
@@ -190,6 +192,12 @@ const MissionModeMap = () => {
     mapView.Camera.setMaxZoomLevel(20)
   }, [mapView])
 
+  useEffect(() => {
+    if (completed.size === mission.zones.length && mission.zones.length > 0) {
+      setShowBadge(true)
+    }
+  }, [completed, mission.zones.length])
+
   const closeModal = () => setActiveZoneId(null)
 
   const activeZone = useMemo(
@@ -210,7 +218,7 @@ const MissionModeMap = () => {
       setTimeout(() => {
         setActiveZoneId(zoneId)
         setLastFeedback(null)
-      }, 1000)
+      }, 250)
     },
     [completed]
   )
@@ -219,11 +227,9 @@ const MissionModeMap = () => {
     (space) => {
       if (!mapView?.Camera?.animateTo || !space) return
 
-      // Prefer space.center; fallback to focusTarget / anchorTarget
       const focus =
         space.center || space.focusTarget || space.anchorTarget || null
 
-      // Tune this zoom level to taste
       const zoom = 19.5
 
       try {
@@ -232,7 +238,7 @@ const MissionModeMap = () => {
           zoomLevel: zoom
         })
       } catch (e) {
-        // Some SDK builds have slightly different signatures; keep it safe
+        // falll back
         try {
           mapView.Camera.animateTo({ center: focus, zoomLevel: zoom })
         } catch {}
@@ -252,7 +258,7 @@ const MissionModeMap = () => {
   const resolveZoneFromSpace = useCallback(
     (space) => {
       if (!space) return null
-      // fastest: id match
+      // check for id fist
       for (const z of mission.zones) {
         const sp = missionSpaceByZoneId.get(z.id)
         if (sp && sp.id === space.id) return z
@@ -335,10 +341,19 @@ const MissionModeMap = () => {
       title: "Mission Completed 🏅",
       text: "Badge unlocked! You’re officially a Space Scientist."
     })
+    // setLastFeedback(null)
+    setShowBadge(true)
   }
 
   return (
     <>
+      <BadgeUnlockOverlay
+        open={showBadge}
+        title="Badge Unlocked! 🏅"
+        subtitle="You’re officially a Space Scientist."
+        badgeText={"Space\nScientist"}
+        onClose={() => setShowBadge(false)}
+      />
       <div className="mission-map-layer">
         <MissionHUD
           title={mission.title}
@@ -347,7 +362,6 @@ const MissionModeMap = () => {
           allDone={allDone}
           onFinish={onFinish}
         />
-
         {lastFeedback ? <Toast feedback={lastFeedback} /> : null}
         <MissionHighlights zones={mission.zones} completed={completed} />
         <MissionMarkers
