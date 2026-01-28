@@ -100,6 +100,7 @@ const MapOverlay = () => {
 
   useEffect(() => {
     return () => {
+      if (mapView) mapView.Navigation.clear?.() // clear blue line when unmount
       dispatch(setDestination(null))
     }
   }, [])

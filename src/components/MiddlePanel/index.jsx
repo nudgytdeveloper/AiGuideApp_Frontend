@@ -3,6 +3,7 @@ import AvatarChat from "@nrs/components/MiddlePanel/AvatarChat"
 import { AIChat, ExhibitDetection, Navigation } from "@nrs/constants/PageType"
 import { useSelector, useDispatch } from "react-redux"
 import mapIcon from "@nrs/assets/img/map.png"
+import backIcon from "@nrs/assets/img/back.png"
 import scanIcon from "@nrs/assets/img/mission.png"
 import { setPageType } from "@nrs/slices/commonSlice"
 import { ArrayEqual } from "@nrs/utils/common"
@@ -48,14 +49,24 @@ const MiddlePanel = () => {
           className="action-btn"
           onClick={() => togglePageType(Navigation)}
         >
-          <img src={mapIcon} height={80} width={80} alt="Map" />
+          <img
+            src={selectedPageType == Navigation ? backIcon : mapIcon}
+            height={80}
+            width={80}
+            alt="Map"
+          />
         </button>
         <button
           id="exhibitScanBtn"
           className="action-btn"
           onClick={() => togglePageType(ExhibitDetection)}
         >
-          <img src={scanIcon} height={80} width={80} alt="Scan" />
+          <img
+            src={selectedPageType == ExhibitDetection ? backIcon : scanIcon}
+            height={80}
+            width={80}
+            alt="Scan"
+          />
         </button>
       </div>
     </main>
