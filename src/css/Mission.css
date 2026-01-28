@@ -269,3 +269,19 @@
   pointer-events: none;
   z-index: 100000; /* above badge/modal/map */
 }
+/* For Zone gif marker.. */
+.zone-gif-wrap {
+  /* shift “from the space anchor” to the top-right */
+  transform: translate(52px, -52px);
+  pointer-events: none;
+}
+
+.zone-gif {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  /* optional: make it pop */
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25));
+}

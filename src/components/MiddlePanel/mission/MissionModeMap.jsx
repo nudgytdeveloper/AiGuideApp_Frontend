@@ -8,6 +8,8 @@ import "@nrs/css/Mission.css"
 import BadgeUnlockOverlay from "@nrs/components/MiddlePanel/mission/BadgeUnlockOverlay"
 import { DEFAULT_MISSION } from "@nrs/constants/MissionList"
 import { norm, pointInAnyGeoJSON, vibrate } from "@nrs/utils/mission"
+// import mechanicsGif from "@nrs/assets/img/hint.gif"
+// import ZoneGifMarker from "@nrs/components/MiddlePanel/mission/ZoneGifMarker"
 
 const MissionModeMap = () => {
   const mission = DEFAULT_MISSION
@@ -354,6 +356,8 @@ const MissionModeMap = () => {
     setShowBadge(true)
   }
 
+  // const mechanicsSpace = missionSpaceByZoneId.get("zone-1")
+
   return (
     <>
       <BadgeUnlockOverlay
@@ -363,6 +367,7 @@ const MissionModeMap = () => {
         badgeText={"Future\nScientist"}
         onClose={() => setShowBadge(false)}
       />
+      {/* <ZoneGifMarker space={mechanicsSpace} src={mechanicsGif} /> */}
       <div className="mission-map-layer">
         <MissionHUD
           title={mission.title}
@@ -378,7 +383,6 @@ const MissionModeMap = () => {
           completed={completed}
           onZonePress={() => {}}
         />
-
         {activeZone ? (
           <QuestionModal
             title={activeZone.label}
