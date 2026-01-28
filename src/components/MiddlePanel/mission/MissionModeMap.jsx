@@ -135,6 +135,16 @@ const MissionModeMap = () => {
     }
     mapView.Camera.setMinZoomLevel(17.5)
     mapView.Camera.setMaxZoomLevel(20)
+    setTimeout(() => {
+      showFeedback(
+        {
+          type: "info",
+          title: "Start you journey   ",
+          text: "☝️ Click on the purple highlighted zone and start your mission journey! 🔬🧑‍🔬👩‍🔬"
+        },
+        5000
+      )
+    }, 1000)
   }, [mapView])
 
   useEffect(() => {
