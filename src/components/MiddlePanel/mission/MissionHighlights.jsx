@@ -84,7 +84,6 @@ export default function MissionHighlights({ zones, completed }) {
         const handles = Array.isArray(added) ? added : added ? [added] : []
         if (handles.length === 0) continue
 
-        // ✅ CRITICAL FIX:
         // Shapes can block picking -> make them NOT interactive
         for (const h of handles) {
           try {

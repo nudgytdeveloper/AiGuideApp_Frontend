@@ -5,8 +5,8 @@ import "@nrs/css/BadgeUnlockOverlay.css"
 export default function BadgeUnlockOverlay({
   open,
   title = "Badge Unlocked!",
-  subtitle = "You’re officially a Space Scientist.",
-  badgeText = "Space\nScientist",
+  subtitle = "You’re officially a Future Scientist.",
+  badgeText = "Future\nScientist",
   onClose
 }) {
   // fire confetti once when open becomes true
