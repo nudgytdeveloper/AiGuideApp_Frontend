@@ -25,17 +25,30 @@ export function useThrottle(ms = 250) {
   }
 }
 export function extractJson(text) {
-  if (!text) return null
+  if (!text) return { reply: "" }
+  // If already an object (some might pass parsed JSON)
+  if (typeof text === "object") {
+    return {
+      reply: text.reply ?? text.text ?? text.content ?? ""
+    }
+  }
 
-  text = text.replace(/^json\s*/i, "")
-  text = text.replace(/```json/i, "").replace(/```/g, "")
-  text = text.trim()
-
+  let s = String(text)
+  s = s.replace(/^json\s*/i, "")
+  s = s.replace(/```json/i, "").replace(/```/g, "")
+  s = s.trim()
+  // strict JSON parse first
   try {
-    return JSON.parse(text)
+    const obj = JSON.parse(s)
+    // Normalize to ensure reply exists
+    return {
+      ...obj,
+      reply: obj?.reply ?? obj?.text ?? obj?.content ?? ""
+    }
   } catch (err) {
-    console.error("LLM JSON parse error:", err, text)
-    return null
+    console.error("LLM JSON parse error:", err, s)
+    // Fallback: treat as plain text reply instead of returning null
+    return { reply: s }
   }
 }
 function escapeRegExp(s) {
