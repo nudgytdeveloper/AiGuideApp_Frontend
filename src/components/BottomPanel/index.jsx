@@ -38,6 +38,10 @@ const BottomPanel = () => {
     }, ArrayEqual),
     dispatch = useDispatch(),
     recognitionRef = useRef(null),
+    ttsAudioRef = useRef(null), // current Audio()
+    ttsUrlRef = useRef(null), // current blob URL
+    ttsAbortRef = useRef(null), // AbortController for ElevenLabs fetch
+    ttsSeqRef = useRef(0), // sequence id to ignore stale responses
     [inputValue, setInputValue] = useState("")
 
   // Start listening - triggered by mic button
@@ -50,7 +54,39 @@ const BottomPanel = () => {
     }
   }
 
+  const stopElevenLabsSpeech = () => {
+    // cancel in-flight request
+    if (ttsAbortRef.current) {
+      try {
+        ttsAbortRef.current.abort()
+      } catch {}
+      ttsAbortRef.current = null
+    }
+    // stop current audio
+    const a = ttsAudioRef.current
+    if (a) {
+      try {
+        a.pause()
+        a.currentTime = 0
+        a.src = "" // release decoder..
+      } catch {}
+      ttsAudioRef.current = null
+    }
+    // cleanup object URL
+    if (ttsUrlRef.current) {
+      try {
+        URL.revokeObjectURL(ttsUrlRef.current)
+      } catch {}
+      ttsUrlRef.current = null
+    }
+    // stop browser TTS fallback if it was speaking
+    try {
+      window.speechSynthesis.cancel()
+    } catch {}
+  }
+
   const handleTextSubmit = () => {
+    stopElevenLabsSpeech() // stop prev speech whenever submit new input
     const input = document.getElementById("chatbox")
     const text = input.value.trim()
     if (text) {
@@ -233,10 +269,17 @@ ENGAGEMENT STRATEGIES:
 
   // Text to speech with ElevenLabs
   const speakResponseWithElevenLabs = async (text) => {
+    // stop anything currently speaking BEFORE starting new speech
+    stopElevenLabsSpeech()
+    // bump sequence (use for ignore stale responses)
+    const seq = ++ttsSeqRef.current
     try {
       const ELEVENLABS_API_KEY =
         "81c412f72d891a703d429dfffca68f139fa678a58ea7a4f48bc522193006f8c1"
       const VOICE_ID = "ljEOxtzNoGEa58anWyea"
+
+      const controller = new AbortController()
+      ttsAbortRef.current = controller
 
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
@@ -248,36 +291,62 @@ ENGAGEMENT STRATEGIES:
             "xi-api-key": ELEVENLABS_API_KEY
           },
           body: JSON.stringify({
-            text: text,
-            model_id: "eleven_multilingual_v2", //eleven_flash_v2_5 // eleven_multilingual_v2
+            text,
+            model_id: "eleven_multilingual_v2",
             voice_settings: {
               stability: 0.8,
               similarity_boost: 0.6,
               style: 0.2,
               use_speaker_boost: false
             }
-          })
+          }),
+          signal: controller.signal
         }
       )
+      // If user already triggered a newer TTS, ignore this one..
+      if (seq !== ttsSeqRef.current) return
 
       if (!response.ok) {
         throw new Error(`ElevenLabs API error: ${response.status}`)
       }
 
       const audioBlob = await response.blob()
+      // If user already triggered a newer TTS, ignore this one.
+      if (seq !== ttsSeqRef.current) return
+
       const audioUrl = URL.createObjectURL(audioBlob)
+      ttsUrlRef.current = audioUrl
+
       const audio = new Audio(audioUrl)
+      ttsAudioRef.current = audio
 
-      audio.play()
-
-      // Clean up the URL after playing
       audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
+        if (ttsAudioRef.current === audio) ttsAudioRef.current = null
+        if (ttsUrlRef.current === audioUrl) {
+          URL.revokeObjectURL(audioUrl)
+          ttsUrlRef.current = null
+        }
       }
+
+      audio.onerror = () => {
+        // cleanup on error too
+        if (ttsUrlRef.current === audioUrl) {
+          URL.revokeObjectURL(audioUrl)
+          ttsUrlRef.current = null
+        }
+        if (ttsAudioRef.current === audio) ttsAudioRef.current = null
+      }
+      await audio.play()
     } catch (error) {
+      // aborted is expected when user sends a new message quickly....
+      if (error?.name === "AbortError") return
       console.error("Error with ElevenLabs TTS:", error)
-      // Fallback to browser TTS if ElevenLabs fails
       speakResponseFallback(text)
+    } finally {
+      // clear abort controller if it's still ours
+      if (ttsAbortRef.current?.signal?.aborted) {
+        ttsAbortRef.current = null
+      }
     }
   }
 
