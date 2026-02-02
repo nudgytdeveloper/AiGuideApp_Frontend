@@ -4,19 +4,14 @@ export const DEFAULT_MISSION = {
   zones: [
     {
       id: "zone-1",
-      label: "Mechanics Alive",
-      spaceName: "Mechanics Alive",
+      label: "Everyday Science",
+      spaceName: "Everyday Science",
       question:
-        "Which of the following item can be found inside the mechanics alive exhibit?",
-      options: [
-        "Earthquake Simulator",
-        "Simple Machines",
-        "Fire Tornado",
-        "Light Maze"
-      ],
-      answerIndex: 1,
+        "Which of the following sub-exhibits can be found in the Everyday Science exhibition?",
+      options: ["Kitchen Science", "Space Odyssey", "Dino Pit", "Robotics Lab"],
+      answerIndex: 0,
       funFact:
-        "Mechanics Alive lets you explore how simple machines like levers, pulleys, and gears work together to make heavy tasks easier in everyday life.",
+        "Everyday Science shows how simple things you use daily—like air, light, heat, and motion—follow fascinating science principles you can see and try for yourself.",
       wrongHint: "Almost! Let’s go to this exhibit and look for the clue 👀"
     },
     {

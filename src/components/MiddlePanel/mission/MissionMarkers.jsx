@@ -35,7 +35,7 @@ const MissionMarkers = ({ zones, completed }) => {
           <Marker key={z.id} target={space} options={{ interactive: true }}>
             <div className={`zone-marker ${done ? "done" : ""}`}>
               <div className="label">
-                {z.label == "Mechanics Alive" ? "Hall C" : z.label}
+                {z.label == "Everyday Science" ? "Hall D" : z.label}
               </div>
             </div>
           </Marker>
