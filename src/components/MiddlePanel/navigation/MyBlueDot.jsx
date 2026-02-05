@@ -33,7 +33,7 @@ const MyBlueDot = () => {
 
     blueDot.enable({
       debug: false,
-      timeout: 30000,
+      timeout: 30000
     })
 
     blueDot.follow("floor-and-position")
@@ -43,6 +43,8 @@ const MyBlueDot = () => {
     //   latitude: 1.3324536194139647,
     //   longitude: 103.73559461967736,
     // })
+    mapView.Camera.setMinZoomLevel(17.5)
+    mapView.Camera.setMaxZoomLevel(22)
 
     return () => {
       blueDot.disable()
